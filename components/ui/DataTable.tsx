@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { ArrowUp, ArrowDown, ArrowUpDown, MoreVertical } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 
@@ -29,6 +29,8 @@ interface DataTableProps<T> {
   // Context menu
   onRowContextMenu?: (e: React.MouseEvent, item: T) => void;
   rowActions?: (item: T) => React.ReactNode;
+  // Virtualization
+  virtualized?: boolean;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -49,6 +51,7 @@ export function DataTable<T extends { id: string }>({
   onSelectionChange,
   onRowContextMenu,
   rowActions,
+  virtualized = false,
 }: DataTableProps<T>) {
   const handleHeaderClick = (key: string, sortable?: boolean) => {
     if (sortable && onSort) {
@@ -82,7 +85,6 @@ export function DataTable<T extends { id: string }>({
       onSelectionChange(next);
     }
   };
-
   const handleSelectRow = (id: string) => {
     if (!onSelectionChange || !selectedIds) return;
     const next = new Set(selectedIds);
@@ -94,9 +96,52 @@ export function DataTable<T extends { id: string }>({
     onSelectionChange(next);
   };
 
+  // Virtualization state & scroll listeners
+  const [scrollTop, setScrollTop] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const rowHeight = 56;
+  const viewportHeight = 560; // 10 rows
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (virtualized) {
+      setScrollTop(e.currentTarget.scrollTop);
+    }
+  };
+
+  // Reset scroll to 0 if data changes or filters apply
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+      setScrollTop(0);
+    }
+  }, [data, virtualized]);
+
+  const totalItems = data.length;
+  const startIndex = Math.floor(scrollTop / rowHeight);
+  const endIndex = Math.ceil((scrollTop + viewportHeight) / rowHeight);
+  const buffer = 10;
+  const bufferedStartIndex = Math.max(0, startIndex - buffer);
+  const bufferedEndIndex = Math.min(totalItems, endIndex + buffer);
+
+  const visibleData = virtualized
+    ? data.slice(bufferedStartIndex, bufferedEndIndex)
+    : data;
+
+  const topSpacerHeight = virtualized ? bufferedStartIndex * rowHeight : 0;
+  const bottomSpacerHeight = virtualized
+    ? (totalItems - bufferedEndIndex) * rowHeight
+    : 0;
+
   return (
     <div className={`space-y-4 ${className}`}>
-      <div className="border-border bg-surface w-full overflow-x-auto rounded-lg border">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className={`border-border bg-surface w-full overflow-x-auto rounded-lg border ${
+          virtualized ? "max-h-[616px] overflow-y-auto" : ""
+        }`}
+      >
         <table className="text-text-primary w-full min-w-[800px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-border bg-background/50 border-b">
@@ -152,7 +197,11 @@ export function DataTable<T extends { id: string }>({
           <tbody>
             {isLoading ? (
               Array.from({ length: 8 }).map((_, rIdx) => (
-                <tr key={rIdx} className="border-border/40 border-b">
+                <tr
+                  key={rIdx}
+                  className="border-border/40 border-b"
+                  style={{ height: `${rowHeight}px` }}
+                >
                   {selectable && (
                     <td className="px-3 py-4">
                       <Skeleton className="h-4 w-4" />
@@ -182,47 +231,75 @@ export function DataTable<T extends { id: string }>({
                 </td>
               </tr>
             ) : (
-              data.map((item, rIdx) => {
-                const isSelected = selectedIds?.has(item.id) ?? false;
-                return (
-                  <tr
-                    key={item.id || rIdx}
-                    onContextMenu={(e) => {
-                      if (onRowContextMenu) {
-                        e.preventDefault();
-                        onRowContextMenu(e, item);
+              <>
+                {topSpacerHeight > 0 && (
+                  <tr style={{ height: `${topSpacerHeight}px` }}>
+                    <td
+                      colSpan={
+                        columns.length +
+                        (selectable ? 1 : 0) +
+                        (rowActions ? 1 : 0)
                       }
-                    }}
-                    className={`border-border/40 hover:bg-surface-hover/50 border-b transition-colors ${
-                      isSelected ? "bg-accent/5" : ""
-                    }`}
-                  >
-                    {selectable && (
-                      <td className="px-3 py-4">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleSelectRow(item.id)}
-                          className="border-border bg-background text-accent focus:ring-accent h-4 w-4 rounded"
-                          aria-label={`Select employee`}
-                        />
-                      </td>
-                    )}
-                    {columns.map((col) => (
-                      <td key={col.key} className="px-6 py-4">
-                        {col.render
-                          ? col.render(item)
-                          : ((item as Record<string, unknown>)[
-                              col.key
-                            ] as React.ReactNode)}
-                      </td>
-                    ))}
-                    {rowActions && (
-                      <td className="px-3 py-4">{rowActions(item)}</td>
-                    )}
+                    />
                   </tr>
-                );
-              })
+                )}
+                {visibleData.map((item, rIdx) => {
+                  const globalIndex = virtualized
+                    ? bufferedStartIndex + rIdx
+                    : rIdx;
+                  const isSelected = selectedIds?.has(item.id) ?? false;
+                  return (
+                    <tr
+                      key={item.id || globalIndex}
+                      onContextMenu={(e) => {
+                        if (onRowContextMenu) {
+                          e.preventDefault();
+                          onRowContextMenu(e, item);
+                        }
+                      }}
+                      className={`border-border/40 hover:bg-surface-hover/50 border-b transition-colors ${
+                        isSelected ? "bg-accent/5" : ""
+                      }`}
+                      style={{ height: `${rowHeight}px` }}
+                    >
+                      {selectable && (
+                        <td className="px-3 py-4">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectRow(item.id)}
+                            className="border-border bg-background text-accent focus:ring-accent h-4 w-4 rounded"
+                            aria-label={`Select employee`}
+                          />
+                        </td>
+                      )}
+                      {columns.map((col) => (
+                        <td key={col.key} className="px-6 py-4">
+                          {col.render
+                            ? col.render(item)
+                            : ((item as Record<string, unknown>)[
+                                col.key
+                              ] as React.ReactNode)}
+                        </td>
+                      ))}
+                      {rowActions && (
+                        <td className="px-3 py-4">{rowActions(item)}</td>
+                      )}
+                    </tr>
+                  );
+                })}
+                {bottomSpacerHeight > 0 && (
+                  <tr style={{ height: `${bottomSpacerHeight}px` }}>
+                    <td
+                      colSpan={
+                        columns.length +
+                        (selectable ? 1 : 0) +
+                        (rowActions ? 1 : 0)
+                      }
+                    />
+                  </tr>
+                )}
+              </>
             )}
           </tbody>
         </table>

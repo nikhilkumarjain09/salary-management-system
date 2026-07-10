@@ -192,7 +192,7 @@ export default function EmployeeDirectoryPage() {
     setIsLoading(true);
     try {
       const activeCursor = cursorHistory[currentPageIndex];
-      let url = `/api/employees?limit=15&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
+      let url = `/api/employees?limit=50&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
 
       if (debouncedSearch)
         url += `&query=${encodeURIComponent(debouncedSearch)}`;
@@ -858,6 +858,7 @@ export default function EmployeeDirectoryPage() {
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           onRowContextMenu={handleRowContextMenu}
+          virtualized
           rowActions={(emp) => (
             <button
               onClick={(e) => handleKebabClick(e, emp)}
