@@ -30,9 +30,12 @@ model Employee {
   // Relations
   salaries     SalaryRecord[]
 
+  @@index([name])
+  @@index([startDate])
   @@index([department])
   @@index([country])
   @@index([level])
+  @@index([isActive, department, level, country])
 }
 
 // RATIONALE FOR APPEND-ONLY SALARY RECORDS:
