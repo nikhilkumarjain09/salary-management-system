@@ -135,6 +135,16 @@
   them isolated in these single files so they can be swapped for final brand
   assets later without touching any other code.
 
+## Search Architecture
+
+- All employee search/lookup anywhere in the app (directory, CommandPalette,
+  or any future feature needing employee lookup) goes through the single
+  ISearchService abstraction (lib/search.ts) built in Phase 5 — never a
+  separate ad hoc Prisma query or duplicate search implementation.
+- The DB-backed fallback is the default and must work with zero external
+  dependencies; Elasticsearch is strictly opt-in via ELASTICSEARCH_URL and
+  its absence must never break local startup or any test.
+
 ## Audit Logging
 
 - Every mutation anywhere in the app (create, edit, deactivate, bulk action,
