@@ -136,9 +136,11 @@ export default async function AppPage() {
                 Query precomputed database metrics via the Natural Language
                 query interface.
               </p>
-              <Button variant="outline" size="sm" className="w-full">
-                Open Reports (Coming Soon)
-              </Button>
+              <Link href="/app/analytics">
+                <Button variant="outline" size="sm" className="w-full">
+                  Open Reports
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

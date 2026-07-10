@@ -19,6 +19,7 @@ import {
   Layers,
   BarChart2,
   Network,
+  TrendingUp,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -180,6 +181,17 @@ function CommandPaletteInner({
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/org-chart");
+        onClose();
+      },
+    },
+    {
+      id: "page-analytics",
+      label: "Pay Analysis & Reports",
+      sublabel: "/app/analytics",
+      icon: <TrendingUp size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/analytics");
         onClose();
       },
     },
