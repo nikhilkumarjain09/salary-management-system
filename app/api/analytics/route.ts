@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     // 1. Headline Metrics - Headcount, Total Cost, Average Compa-Ratio
     const headcountRaw = await prisma.$queryRaw<
       { count: bigint }[]
-    >`SELECT COUNT(*) as count FROM "Employee" WHERE "isActive" = 1`;
+    >`SELECT COUNT(*) as count FROM "Employee" WHERE "isActive" = ${true}`;
     const headcount = Number(headcountRaw[0]?.count || 0);
 
     const totalCostRaw = await prisma.$queryRaw<{ totalCost: number | null }[]>`
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         GROUP BY "employeeId"
       ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
       INNER JOIN "Employee" e ON s."employeeId" = e.id
-      WHERE e."isActive" = 1
+      WHERE e."isActive" = ${true}
     `;
     const totalCost = totalCostRaw[0]?.totalCost || 0;
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
       INNER JOIN "Employee" e ON s."employeeId" = e.id
       INNER JOIN "CompensationBand" b ON e."department" = b."department" AND e."level" = b."level" AND e."country" = b."country"
-      WHERE e."isActive" = 1 AND b."midAmount" > 0
+      WHERE e."isActive" = ${true} AND b."midAmount" > 0
     `;
     const averageCompa = Number(
       ((compaRatioRaw[0]?.avgRatio || 1.0) * 100).toFixed(1),
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         GROUP BY "employeeId"
       ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
       INNER JOIN "Employee" e ON s."employeeId" = e.id
-      WHERE e."isActive" = 1
+      WHERE e."isActive" = ${true}
       GROUP BY e."department"
     `;
 
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
           GROUP BY "employeeId"
         ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
         INNER JOIN "Employee" e ON s."employeeId" = e.id
-        WHERE e."isActive" = 1
+        WHERE e."isActive" = ${true}
       )
       SELECT department, AVG(baseAmountUSD) as medianPay
       FROM OrderedSalaries
@@ -89,10 +89,10 @@ export async function GET(req: NextRequest) {
 
     // Map departments together
     const deptMap = new Map<string, { average: number; median: number }>();
-    deptAverageRaw.forEach((d) =>
+    deptAverageRaw.forEach((d: { department: string; avgPay: number }) =>
       deptMap.set(d.department, { average: d.avgPay, median: 0 }),
     );
-    deptMedianRaw.forEach((d) => {
+    deptMedianRaw.forEach((d: { department: string; medianPay: number }) => {
       const existing = deptMap.get(d.department) || { average: 0, median: 0 };
       existing.median = d.medianPay;
       deptMap.set(d.department, existing);
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
         GROUP BY "employeeId"
       ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
       INNER JOIN "Employee" e ON s."employeeId" = e.id
-      WHERE e."isActive" = 1
+      WHERE e."isActive" = ${true}
       GROUP BY e."country"
     `;
 
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
           GROUP BY "employeeId"
         ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
         INNER JOIN "Employee" e ON s."employeeId" = e.id
-        WHERE e."isActive" = 1
+        WHERE e."isActive" = ${true}
       )
       SELECT country, AVG(baseAmountUSD) as medianPay
       FROM OrderedSalaries
@@ -147,10 +147,10 @@ export async function GET(req: NextRequest) {
     `;
 
     const countryMap = new Map<string, { average: number; median: number }>();
-    countryAverageRaw.forEach((c) =>
+    countryAverageRaw.forEach((c: { country: string; avgPay: number }) =>
       countryMap.set(c.country, { average: c.avgPay, median: 0 }),
     );
-    countryMedianRaw.forEach((c) => {
+    countryMedianRaw.forEach((c: { country: string; medianPay: number }) => {
       const existing = countryMap.get(c.country) || { average: 0, median: 0 };
       existing.median = c.medianPay;
       countryMap.set(c.country, existing);
@@ -165,39 +165,83 @@ export async function GET(req: NextRequest) {
     );
 
     // 4. Headcount Cost Trend over the Last 12 Months
-    const trendRaw = await prisma.$queryRaw<
-      { month: string; totalCost: number | null; headcount: bigint }[]
-    >`
-      WITH RECURSIVE months(date) AS (
-        SELECT date('now', 'start of month', '-11 months')
-        UNION ALL
-        SELECT date(date, '+1 month')
-        FROM months
-        WHERE date < date('now', 'start of month')
-      )
-      SELECT 
-        m.date as month,
-        (
-          SELECT SUM(s."baseAmountUSD") 
-          FROM "SalaryRecord" s
-          INNER JOIN "Employee" e ON s."employeeId" = e.id
-          WHERE s."effectiveDate" <= date(m.date, '+1 month', '-1 day')
-            AND e."isActive" = 1
-            AND NOT EXISTS (
-              SELECT 1 FROM "SalaryRecord" s2
-              WHERE s2."employeeId" = s."employeeId"
-                AND s2."effectiveDate" <= date(m.date, '+1 month', '-1 day')
-                AND s2."effectiveDate" > s."effectiveDate"
-            )
-        ) as totalCost,
-        (
-          SELECT COUNT(e.id)
-          FROM "Employee" e
-          WHERE e."startDate" <= date(m.date, '+1 month', '-1 day')
-            AND e."isActive" = 1
-        ) as headcount
-      FROM months m
-    `;
+    const isPostgres =
+      process.env.DATABASE_URL?.startsWith("postgres") || false;
+    let trendRaw: {
+      month: string;
+      totalCost: number | null;
+      headcount: bigint;
+    }[] = [];
+
+    if (isPostgres) {
+      trendRaw = await prisma.$queryRaw<
+        { month: string; totalCost: number | null; headcount: bigint }[]
+      >`
+        WITH months AS (
+          SELECT (generate_series(
+            date_trunc('month', current_date) - INTERVAL '11 months',
+            date_trunc('month', current_date),
+            INTERVAL '1 month'
+          ))::date as date
+        )
+        SELECT 
+          to_char(m.date, 'YYYY-MM-DD') as month,
+          (
+            SELECT SUM(s."baseAmountUSD") 
+            FROM "SalaryRecord" s
+            INNER JOIN "Employee" e ON s."employeeId" = e.id
+            WHERE s."effectiveDate" <= (m.date + INTERVAL '1 month' - INTERVAL '1 day')::date
+              AND e."isActive" = true
+              AND NOT EXISTS (
+                SELECT 1 FROM "SalaryRecord" s2
+                WHERE s2."employeeId" = s."employeeId"
+                  AND s2."effectiveDate" <= (m.date + INTERVAL '1 month' - INTERVAL '1 day')::date
+                  AND s2."effectiveDate" > s."effectiveDate"
+              )
+          ) as "totalCost",
+          (
+            SELECT COUNT(e.id)
+            FROM "Employee" e
+            WHERE e."startDate" <= (m.date + INTERVAL '1 month' - INTERVAL '1 day')::date
+              AND e."isActive" = true
+          ) as headcount
+        FROM months m
+      `;
+    } else {
+      trendRaw = await prisma.$queryRaw<
+        { month: string; totalCost: number | null; headcount: bigint }[]
+      >`
+        WITH RECURSIVE months(date) AS (
+          SELECT date('now', 'start of month', '-11 months')
+          UNION ALL
+          SELECT date(date, '+1 month')
+          FROM months
+          WHERE date < date('now', 'start of month')
+        )
+        SELECT 
+          m.date as month,
+          (
+            SELECT SUM(s."baseAmountUSD") 
+            FROM "SalaryRecord" s
+            INNER JOIN "Employee" e ON s."employeeId" = e.id
+            WHERE s."effectiveDate" <= date(m.date, '+1 month', '-1 day')
+              AND e."isActive" = 1
+              AND NOT EXISTS (
+                SELECT 1 FROM "SalaryRecord" s2
+                WHERE s2."employeeId" = s."employeeId"
+                  AND s2."effectiveDate" <= date(m.date, '+1 month', '-1 day')
+                  AND s2."effectiveDate" > s."effectiveDate"
+              )
+          ) as totalCost,
+          (
+            SELECT COUNT(e.id)
+            FROM "Employee" e
+            WHERE e."startDate" <= date(m.date, '+1 month', '-1 day')
+              AND e."isActive" = 1
+          ) as headcount
+        FROM months m
+      `;
+    }
 
     const monthlyTrend = trendRaw.map((t) => ({
       month: new Date(t.month).toLocaleDateString("en-US", {
@@ -232,7 +276,7 @@ export async function GET(req: NextRequest) {
           GROUP BY "employeeId"
         ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
         INNER JOIN "Employee" e ON s."employeeId" = e.id
-        WHERE e."isActive" = 1
+        WHERE e."isActive" = ${true}
         GROUP BY e."department", e."level", e."country"
       )
       SELECT 

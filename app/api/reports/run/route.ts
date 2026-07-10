@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         ) latest ON s."employeeId" = latest."employeeId" AND s."effectiveDate" = latest.maxDate
         INNER JOIN "Employee" e ON s."employeeId" = e.id
         LEFT JOIN "CompensationBand" b ON e."department" = b."department" AND e."level" = b."level" AND e."country" = b."country"
-        WHERE e."isActive" = 1
+        WHERE e."isActive" = true
       ),
       OrderedSalaries AS (
         SELECT 

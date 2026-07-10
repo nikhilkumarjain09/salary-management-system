@@ -1,13 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import Database from "better-sqlite3";
+import { prisma } from "../lib/prisma";
 import { faker } from "@faker-js/faker";
-
-// Setup database connection with driver adapter
-const adapter = new PrismaBetterSqlite3({
-  url: "file:prisma/dev.db",
-});
-const prisma = new PrismaClient({ adapter });
 
 // Configuration arrays and mappings
 const COUNTRIES = [

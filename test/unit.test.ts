@@ -1,3 +1,4 @@
+process.env.DATABASE_URL = "postgresql://localhost:5432/postgres";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { convertToUSD, convertFromUSD } from "../lib/currency";
 import { authConfig } from "../auth.config";

@@ -1,3 +1,4 @@
+process.env.DATABASE_URL = "postgresql://localhost:5432/postgres";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import {

@@ -1,10 +1,15 @@
 import { Client } from "@elastic/elasticsearch";
 import { ISearchService, SearchParams, SearchResult } from "./search";
+import { DatabaseSearchService } from "./database";
 
 export class ElasticsearchSearchService implements ISearchService {
   private client: Client;
+  private dbFallback = new DatabaseSearchService();
 
   constructor(url: string) {
+    console.log(
+      `[Search] Initializing ElasticsearchSearchService at node ${url}`,
+    );
     const username = process.env.ELASTICSEARCH_USERNAME;
     const password = process.env.ELASTICSEARCH_PASSWORD;
 
@@ -71,7 +76,10 @@ export class ElasticsearchSearchService implements ISearchService {
         );
       }
     } catch (error) {
-      console.error("[Elasticsearch] Failed to initialize index:", error);
+      console.error(
+        "[Elasticsearch] Connection failed or could not initialize index. Fallback search queries will default to PostgreSQL client-side search logic.",
+        error,
+      );
     }
   }
 
@@ -216,8 +224,11 @@ export class ElasticsearchSearchService implements ISearchService {
         totalHits,
       };
     } catch (error) {
-      console.error("[Elasticsearch] Search query failed:", error);
-      throw error;
+      console.error(
+        "[Elasticsearch] Search query failed. Falling back to DatabaseSearchService:",
+        error,
+      );
+      return this.dbFallback.search(params);
     }
   }
 

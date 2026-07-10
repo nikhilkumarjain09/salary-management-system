@@ -32,6 +32,12 @@ export interface ISearchService {
 
 const esUrl = process.env.ELASTICSEARCH_URL;
 
+if (!esUrl) {
+  console.log(
+    "[Search] ELASTICSEARCH_URL is not set. Falling back to DatabaseSearchService (PostgreSQL).",
+  );
+}
+
 export const searchService: ISearchService = esUrl
   ? new ElasticsearchSearchService(esUrl)
   : new DatabaseSearchService();
