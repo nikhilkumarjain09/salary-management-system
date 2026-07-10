@@ -10,7 +10,13 @@ import React, {
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, LayoutDashboard, Users, ArrowRight } from "lucide-react";
+import {
+  Search,
+  LayoutDashboard,
+  Users,
+  ArrowRight,
+  FileText,
+} from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Context                                                           */
@@ -127,6 +133,17 @@ function CommandPaletteInner({
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/employees");
+        onClose();
+      },
+    },
+    {
+      id: "page-audit-log",
+      label: "Audit Log",
+      sublabel: "/app/audit-log",
+      icon: <FileText size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/audit-log");
         onClose();
       },
     },

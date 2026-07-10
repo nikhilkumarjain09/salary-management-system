@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { Logo } from "@/components/logo";
@@ -44,20 +45,24 @@ export default async function AppPage() {
           description="Welcome to the PaySight administrative dashboard. Select a section from the navigation or search using keyboard shortcut Ctrl+K."
         />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle>Employee Directory</CardTitle>
-              <CardDescription>Manage ACME's 10,000 employees</CardDescription>
+              <CardDescription>
+                Manage ACME&apos;s 10,000 employees
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-text-muted mb-4 text-sm">
                 View, filter, edit records, manager assignments, and audit
                 active statuses.
               </p>
-              <Button variant="outline" size="sm" className="w-full">
-                Go to Directory (Coming Soon)
-              </Button>
+              <Link href="/app/employees">
+                <Button variant="outline" size="sm" className="w-full">
+                  Go to Directory
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -92,6 +97,24 @@ export default async function AppPage() {
               <Button variant="outline" size="sm" className="w-full">
                 Open Reports (Coming Soon)
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Audit Log</CardTitle>
+              <CardDescription>Track every system mutation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-text-muted mb-4 text-sm">
+                Review the immutable record of all creates, updates,
+                deactivations, and bulk actions.
+              </p>
+              <Link href="/app/audit-log">
+                <Button variant="outline" size="sm" className="w-full">
+                  View Audit Log
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
