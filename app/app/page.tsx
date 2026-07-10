@@ -12,6 +12,7 @@ import {
   CardContent,
 } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PayQueryBox } from "@/components/ui/PayQueryBox";
 
 export default async function AppPage() {
   const session = await auth();
@@ -44,6 +45,8 @@ export default async function AppPage() {
           title="HR Management Portal"
           description="Welcome to the PaySight administrative dashboard. Select a section from the navigation or search using keyboard shortcut Ctrl+K."
         />
+
+        <PayQueryBox />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
