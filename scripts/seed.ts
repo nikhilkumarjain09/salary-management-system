@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { faker } from "@faker-js/faker";
+import { faker, fakerEN_IN } from "@faker-js/faker";
 
 // Configuration arrays and mappings
 const COUNTRIES = [
@@ -114,7 +114,11 @@ async function main() {
   function generateEmployeeBase(level: string): EmployeeGen {
     const countryObj = faker.helpers.arrayElement(COUNTRIES);
     const department = faker.helpers.arrayElement(DEPARTMENTS);
-    const name = faker.person.fullName();
+    // Generate mostly (e.g. 85%) Indian names, and 15% standard names
+    const useIndianName = Math.random() < 0.85;
+    const name = useIndianName
+      ? fakerEN_IN.person.fullName()
+      : faker.person.fullName();
     const employeeCode = `EMP-${String(employeeCounter++).padStart(5, "0")}`;
 
     // Start date in the last 5 years
