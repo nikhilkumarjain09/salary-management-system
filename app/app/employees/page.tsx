@@ -1,14 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Search, FilterX, Eye, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  Search,
+  FilterX,
+  Eye,
+  Edit,
+  History,
+  Download,
+  UserX,
+  MoreVertical,
+  ArrowDownToLine,
+  Layers,
+  Building2,
+} from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { FormField } from "@/components/ui/FormField";
+import { ContextMenu, ContextMenuItem } from "@/components/ui/ContextMenu";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { BulkActionBar } from "@/components/ui/BulkActionBar";
 import { createEmployeeSchema } from "@/lib/validations/employee";
 
 interface Employee {
@@ -29,6 +46,8 @@ interface FilterMetadata {
 }
 
 export default function EmployeeDirectoryPage() {
+  const router = useRouter();
+
   // Query & state management
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,10 +77,44 @@ export default function EmployeeDirectoryPage() {
     levels: [],
   });
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // Modal forms management
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    position: { x: number; y: number } | null;
+    employee: Employee | null;
+  }>({ position: null, employee: null });
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    variant: "default" | "destructive";
+    confirmLabel: string;
+    onConfirm: () => void;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    variant: "default",
+    confirmLabel: "Confirm",
+    onConfirm: () => {},
+    isLoading: false,
+  });
+
+  // Bulk change modals
+  const [bulkDeptOpen, setBulkDeptOpen] = useState(false);
+  const [bulkLevelOpen, setBulkLevelOpen] = useState(false);
+  const [bulkDeptValue, setBulkDeptValue] = useState("");
+  const [bulkLevelValue, setBulkLevelValue] = useState("L1");
 
   // Create Form State
   const [createForm, setCreateForm] = useState({
@@ -130,36 +183,32 @@ export default function EmployeeDirectoryPage() {
   }, []);
 
   // Fetch paginated employees list
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      setIsLoading(true);
-      try {
-        const activeCursor = cursorHistory[currentPageIndex];
-        let url = `/api/employees?limit=15&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+  const fetchEmployees = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const activeCursor = cursorHistory[currentPageIndex];
+      let url = `/api/employees?limit=15&sortBy=${sortBy}&sortOrder=${sortOrder}`;
 
-        if (debouncedSearch)
-          url += `&query=${encodeURIComponent(debouncedSearch)}`;
-        if (department) url += `&department=${encodeURIComponent(department)}`;
-        if (country) url += `&country=${encodeURIComponent(country)}`;
-        if (level) url += `&level=${encodeURIComponent(level)}`;
-        if (isActive !== "all") url += `&isActive=${isActive}`;
-        if (activeCursor) url += `&cursor=${activeCursor}`;
+      if (debouncedSearch)
+        url += `&query=${encodeURIComponent(debouncedSearch)}`;
+      if (department) url += `&department=${encodeURIComponent(department)}`;
+      if (country) url += `&country=${encodeURIComponent(country)}`;
+      if (level) url += `&level=${encodeURIComponent(level)}`;
+      if (isActive !== "all") url += `&isActive=${isActive}`;
+      if (activeCursor) url += `&cursor=${activeCursor}`;
 
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          setEmployees(data.employees);
-          setNextCursor(data.nextCursor);
-          setTotalHits(data.totalHits);
-        }
-      } catch (err) {
-        console.error("Error fetching employees:", err);
-      } finally {
-        setIsLoading(false);
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setEmployees(data.employees);
+        setNextCursor(data.nextCursor);
+        setTotalHits(data.totalHits);
       }
-    };
-
-    fetchEmployees();
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [
     debouncedSearch,
     department,
@@ -171,6 +220,10 @@ export default function EmployeeDirectoryPage() {
     currentPageIndex,
     cursorHistory,
   ]);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   const handleNextPage = () => {
     if (nextCursor) {
@@ -202,7 +255,234 @@ export default function EmployeeDirectoryPage() {
     setIsActive("true");
   };
 
-  // Submit Create Employee Form
+  const refreshList = () => {
+    setCursorHistory([null]);
+    setCurrentPageIndex(0);
+    setSelectedIds(new Set());
+  };
+
+  // ----------------------------------------------------------------
+  // Context menu actions
+  // ----------------------------------------------------------------
+
+  const handleRowContextMenu = (e: React.MouseEvent, emp: Employee) => {
+    setContextMenu({
+      position: { x: e.clientX, y: e.clientY },
+      employee: emp,
+    });
+  };
+
+  const handleKebabClick = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    emp: Employee,
+  ) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      position: { x: rect.right - 180, y: rect.bottom + 4 },
+      employee: emp,
+    });
+  };
+
+  const getContextMenuItems = (emp: Employee): ContextMenuItem[] => [
+    {
+      label: "View Details",
+      icon: <Eye size={14} />,
+      onClick: () => router.push(`/app/employees/${emp.id}`),
+    },
+    {
+      label: "Edit",
+      icon: <Edit size={14} />,
+      onClick: () => handleOpenEdit(emp),
+    },
+    {
+      label: "View Salary History",
+      icon: <History size={14} />,
+      onClick: () => router.push(`/app/employees/${emp.id}`),
+    },
+    {
+      label: "Export This Employee",
+      icon: <Download size={14} />,
+      onClick: () => exportSingleEmployee(emp),
+    },
+    {
+      label: emp.isActive ? "Deactivate" : "Reactivate",
+      icon: <UserX size={14} />,
+      onClick: () => openDeactivateConfirm(emp),
+      variant: "destructive" as const,
+      separator: true,
+    },
+  ];
+
+  // ----------------------------------------------------------------
+  // Deactivate / reactivate
+  // ----------------------------------------------------------------
+
+  const openDeactivateConfirm = (emp: Employee) => {
+    const willDeactivate = emp.isActive;
+    setConfirmDialog({
+      isOpen: true,
+      title: willDeactivate ? "Deactivate Employee" : "Reactivate Employee",
+      description: willDeactivate
+        ? `This will mark ${emp.name} (${emp.employeeCode}) as inactive. This action is reversible — you can reactivate them later.`
+        : `This will reactivate ${emp.name} (${emp.employeeCode}) and mark them as active.`,
+      variant: willDeactivate ? "destructive" : "default",
+      confirmLabel: willDeactivate ? "Deactivate" : "Reactivate",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/employees/${emp.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive: !emp.isActive }),
+          });
+          if (res.ok) {
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+            refreshList();
+          }
+        } catch (err) {
+          console.error("Deactivate error:", err);
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  // ----------------------------------------------------------------
+  // Export helpers
+  // ----------------------------------------------------------------
+
+  const exportSingleEmployee = (emp: Employee) => {
+    const csv = generateCSV([emp]);
+    downloadCSV(csv, `employee-${emp.employeeCode}.csv`);
+  };
+
+  const exportSelectedEmployees = () => {
+    const selected = employees.filter((emp) => selectedIds.has(emp.id));
+    if (selected.length === 0) return;
+    const csv = generateCSV(selected);
+    downloadCSV(csv, `employees-export-${selected.length}.csv`);
+  };
+
+  const generateCSV = (emps: Employee[]) => {
+    const headers = [
+      "Name",
+      "Employee ID",
+      "Department",
+      "Level",
+      "Country",
+      "Status",
+      "Start Date",
+    ];
+    const rows = emps.map((e) => [
+      e.name,
+      e.employeeCode,
+      e.department,
+      e.level,
+      e.country,
+      e.isActive ? "Active" : "Inactive",
+      e.startDate,
+    ]);
+    return [headers, ...rows].map((r) => r.join(",")).join("\n");
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ----------------------------------------------------------------
+  // Bulk actions
+  // ----------------------------------------------------------------
+
+  const handleBulkChangeDept = () => {
+    setBulkDeptValue(metadata.departments[0] || "");
+    setBulkDeptOpen(true);
+  };
+
+  const handleBulkChangeLevel = () => {
+    setBulkLevelValue("L1");
+    setBulkLevelOpen(true);
+  };
+
+  const confirmBulkDeptChange = () => {
+    if (!bulkDeptValue) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: "Bulk Change Department",
+      description: `This will change the department to "${bulkDeptValue}" for ${selectedIds.size} employee${selectedIds.size !== 1 ? "s" : ""}. This action will be recorded in the audit log.`,
+      variant: "default",
+      confirmLabel: "Apply Change",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch("/api/employees/bulk", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ids: Array.from(selectedIds),
+              changes: { department: bulkDeptValue },
+            }),
+          });
+          if (res.ok) {
+            setBulkDeptOpen(false);
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+            refreshList();
+          }
+        } catch (err) {
+          console.error("Bulk department change error:", err);
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  const confirmBulkLevelChange = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Bulk Change Level",
+      description: `This will change the level to "${bulkLevelValue}" for ${selectedIds.size} employee${selectedIds.size !== 1 ? "s" : ""}. This action will be recorded in the audit log.`,
+      variant: "default",
+      confirmLabel: "Apply Change",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch("/api/employees/bulk", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ids: Array.from(selectedIds),
+              changes: { level: bulkLevelValue },
+            }),
+          });
+          if (res.ok) {
+            setBulkLevelOpen(false);
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+            refreshList();
+          }
+        } catch (err) {
+          console.error("Bulk level change error:", err);
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  // ----------------------------------------------------------------
+  // Create / Edit form handlers
+  // ----------------------------------------------------------------
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateErrors({});
@@ -253,9 +533,7 @@ export default function EmployeeDirectoryPage() {
           currency: "USD",
           managerId: "",
         });
-        // Trigger list refresh
-        setCursorHistory([null]);
-        setCurrentPageIndex(0);
+        refreshList();
       } else {
         setCreateErrors({
           global: resData.error || "Failed to create employee",
@@ -278,7 +556,7 @@ export default function EmployeeDirectoryPage() {
       level: emp.level,
       country: emp.country,
       isActive: emp.isActive,
-      managerId: "", // Optional, load later if desired or keep simple
+      managerId: "",
     });
     setEditErrors({});
     setIsEditOpen(true);
@@ -312,9 +590,7 @@ export default function EmployeeDirectoryPage() {
 
       if (res.ok) {
         setIsEditOpen(false);
-        // Refresh list
-        setCursorHistory([null]);
-        setCurrentPageIndex(0);
+        refreshList();
       } else {
         setEditErrors({ global: resData.error || "Failed to update employee" });
       }
@@ -334,10 +610,11 @@ export default function EmployeeDirectoryPage() {
       sortable: true,
       render: (item) => (
         <div className="text-text-primary font-semibold">
-          {(item as any).highlightedName ? (
+          {(item as Employee & { highlightedName?: string }).highlightedName ? (
             <span
               dangerouslySetInnerHTML={{
-                __html: (item as any).highlightedName,
+                __html: (item as Employee & { highlightedName?: string })
+                  .highlightedName as string,
               }}
               className="[&>em]:bg-accent/20 [&>em]:text-accent [&>em]:font-bold [&>em]:not-italic"
             />
@@ -364,30 +641,6 @@ export default function EmployeeDirectoryPage() {
         >
           {item.isActive ? "Active" : "Inactive"}
         </span>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      render: (item) => (
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/app/employees/${item.id}`}
-            className="text-accent hover:text-accent-hover flex items-center gap-1 text-xs font-semibold transition-colors"
-            title="View Details"
-          >
-            <Eye size={14} />
-            <span>Profile</span>
-          </Link>
-          <button
-            onClick={() => handleOpenEdit(item)}
-            className="text-text-muted hover:text-text-primary flex items-center gap-1 text-xs font-semibold transition-colors"
-            title="Edit Employee"
-          >
-            <Edit size={14} />
-            <span>Edit</span>
-          </button>
-        </div>
       ),
     },
   ];
@@ -527,8 +780,141 @@ export default function EmployeeDirectoryPage() {
           onPrevPage={handlePrevPage}
           currentPageIndex={currentPageIndex}
           totalHits={totalHits}
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          onRowContextMenu={handleRowContextMenu}
+          rowActions={(emp) => (
+            <button
+              onClick={(e) => handleKebabClick(e, emp)}
+              className="text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-md p-1 transition-colors"
+              aria-label="Row actions"
+            >
+              <MoreVertical size={16} />
+            </button>
+          )}
         />
       </main>
+
+      {/* Context Menu */}
+      <ContextMenu
+        items={
+          contextMenu.employee ? getContextMenuItems(contextMenu.employee) : []
+        }
+        position={contextMenu.position}
+        onClose={() => setContextMenu({ position: null, employee: null })}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        variant={confirmDialog.variant}
+        confirmLabel={confirmDialog.confirmLabel}
+        isLoading={confirmDialog.isLoading}
+      />
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onDeselectAll={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            label: "Export Selected",
+            icon: <ArrowDownToLine size={14} />,
+            onClick: exportSelectedEmployees,
+          },
+          {
+            label: "Change Department",
+            icon: <Building2 size={14} />,
+            onClick: handleBulkChangeDept,
+          },
+          {
+            label: "Change Level",
+            icon: <Layers size={14} />,
+            onClick: handleBulkChangeLevel,
+          },
+        ]}
+      />
+
+      {/* Bulk Change Department Modal */}
+      <Modal
+        isOpen={bulkDeptOpen}
+        onClose={() => setBulkDeptOpen(false)}
+        title="Bulk Change Department"
+      >
+        <div className="space-y-4">
+          <p className="text-text-muted text-sm">
+            Select the new department for {selectedIds.size} selected employee
+            {selectedIds.size !== 1 ? "s" : ""}.
+          </p>
+          <div className="space-y-1.5">
+            <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+              New Department
+            </label>
+            <select
+              value={bulkDeptValue}
+              onChange={(e) => setBulkDeptValue(e.target.value)}
+              className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+            >
+              {metadata.departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="border-border mt-6 flex justify-end gap-3 border-t pt-4">
+            <Button variant="outline" onClick={() => setBulkDeptOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={confirmBulkDeptChange}>
+              Continue
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Change Level Modal */}
+      <Modal
+        isOpen={bulkLevelOpen}
+        onClose={() => setBulkLevelOpen(false)}
+        title="Bulk Change Level"
+      >
+        <div className="space-y-4">
+          <p className="text-text-muted text-sm">
+            Select the new level for {selectedIds.size} selected employee
+            {selectedIds.size !== 1 ? "s" : ""}.
+          </p>
+          <div className="space-y-1.5">
+            <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+              New Level
+            </label>
+            <select
+              value={bulkLevelValue}
+              onChange={(e) => setBulkLevelValue(e.target.value)}
+              className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+            >
+              {LEVELS.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="border-border mt-6 flex justify-end gap-3 border-t pt-4">
+            <Button variant="outline" onClick={() => setBulkLevelOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={confirmBulkLevelChange}>
+              Continue
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add Employee Modal */}
       <Modal

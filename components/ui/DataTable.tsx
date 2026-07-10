@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, MoreVertical } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 
 export interface ColumnDef<T> {
@@ -22,6 +22,13 @@ interface DataTableProps<T> {
   currentPageIndex?: number;
   totalHits?: number;
   className?: string;
+  // Selection
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
+  // Context menu
+  onRowContextMenu?: (e: React.MouseEvent, item: T) => void;
+  rowActions?: (item: T) => React.ReactNode;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -37,11 +44,54 @@ export function DataTable<T extends { id: string }>({
   currentPageIndex = 0,
   totalHits = 0,
   className = "",
+  selectable = false,
+  selectedIds,
+  onSelectionChange,
+  onRowContextMenu,
+  rowActions,
 }: DataTableProps<T>) {
   const handleHeaderClick = (key: string, sortable?: boolean) => {
     if (sortable && onSort) {
       onSort(key);
     }
+  };
+
+  const isAllSelected =
+    selectable &&
+    data.length > 0 &&
+    selectedIds !== undefined &&
+    data.every((item) => selectedIds.has(item.id));
+
+  const isSomeSelected =
+    selectable &&
+    selectedIds !== undefined &&
+    data.some((item) => selectedIds.has(item.id)) &&
+    !isAllSelected;
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange || !selectedIds) return;
+    if (isAllSelected) {
+      // Deselect all current page items
+      const next = new Set(selectedIds);
+      data.forEach((item) => next.delete(item.id));
+      onSelectionChange(next);
+    } else {
+      // Select all current page items
+      const next = new Set(selectedIds);
+      data.forEach((item) => next.add(item.id));
+      onSelectionChange(next);
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    if (!onSelectionChange || !selectedIds) return;
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
   };
 
   return (
@@ -50,6 +100,20 @@ export function DataTable<T extends { id: string }>({
         <table className="text-text-primary w-full min-w-[800px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-border bg-background/50 border-b">
+              {selectable && (
+                <th className="w-10 px-3 py-4">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isSomeSelected;
+                    }}
+                    onChange={handleSelectAll}
+                    className="border-border bg-background text-accent focus:ring-accent h-4 w-4 rounded"
+                    aria-label="Select all employees on this page"
+                  />
+                </th>
+              )}
               {columns.map((col) => (
                 <th
                   key={col.key}
@@ -78,41 +142,87 @@ export function DataTable<T extends { id: string }>({
                   </div>
                 </th>
               ))}
+              {rowActions && (
+                <th className="w-10 px-3 py-4">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 8 }).map((_, rIdx) => (
                 <tr key={rIdx} className="border-border/40 border-b">
+                  {selectable && (
+                    <td className="px-3 py-4">
+                      <Skeleton className="h-4 w-4" />
+                    </td>
+                  )}
                   {columns.map((col) => (
                     <td key={col.key} className="px-6 py-4">
                       <Skeleton className="h-4 w-5/6" />
                     </td>
                   ))}
+                  {rowActions && (
+                    <td className="px-3 py-4">
+                      <Skeleton className="h-4 w-4" />
+                    </td>
+                  )}
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={
+                    columns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0)
+                  }
                   className="text-text-muted px-6 py-12 text-center"
                 >
                   No results found.
                 </td>
               </tr>
             ) : (
-              data.map((item, rIdx) => (
-                <tr
-                  key={item.id || rIdx}
-                  className="border-border/40 hover:bg-surface-hover/50 border-b transition-colors"
-                >
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-6 py-4">
-                      {col.render ? col.render(item) : (item as any)[col.key]}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              data.map((item, rIdx) => {
+                const isSelected = selectedIds?.has(item.id) ?? false;
+                return (
+                  <tr
+                    key={item.id || rIdx}
+                    onContextMenu={(e) => {
+                      if (onRowContextMenu) {
+                        e.preventDefault();
+                        onRowContextMenu(e, item);
+                      }
+                    }}
+                    className={`border-border/40 hover:bg-surface-hover/50 border-b transition-colors ${
+                      isSelected ? "bg-accent/5" : ""
+                    }`}
+                  >
+                    {selectable && (
+                      <td className="px-3 py-4">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(item.id)}
+                          className="border-border bg-background text-accent focus:ring-accent h-4 w-4 rounded"
+                          aria-label={`Select employee`}
+                        />
+                      </td>
+                    )}
+                    {columns.map((col) => (
+                      <td key={col.key} className="px-6 py-4">
+                        {col.render
+                          ? col.render(item)
+                          : ((item as Record<string, unknown>)[
+                              col.key
+                            ] as React.ReactNode)}
+                      </td>
+                    ))}
+                    {rowActions && (
+                      <td className="px-3 py-4">{rowActions(item)}</td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
