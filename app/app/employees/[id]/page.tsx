@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useEffect } from "react";
+import React, { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,15 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ComparisonGauge } from "@/components/ui/ComparisonGauge";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as ChartTooltip,
+  CartesianGrid,
+} from "recharts";
 
 interface SalaryRecord {
   id: string;
@@ -70,11 +79,20 @@ export default function EmployeeDetailPage({ params }: PageParams) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch employee detail on mount
-  useEffect(() => {
-    const fetchDetail = async () => {
+  // Salary Record Form States
+  const [newBaseSalary, setNewBaseSalary] = useState("");
+  const [newBonus, setNewBonus] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch employee detail
+  const fetchDetail = useCallback(
+    async (showLoader = false) => {
       try {
-        setIsLoading(true);
+        if (showLoader) setIsLoading(true);
         setError(null);
         const res = await fetch(`/api/employees/${id}`);
         if (res.ok) {
@@ -87,11 +105,62 @@ export default function EmployeeDetailPage({ params }: PageParams) {
         console.error("Error fetching detail:", err);
         setError("Failed to connect to the server.");
       } finally {
-        setIsLoading(false);
+        if (showLoader) setIsLoading(false);
       }
-    };
-    fetchDetail();
-  }, [id]);
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    fetchDetail(true);
+  }, [fetchDetail]);
+
+  const handleSalaryChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    setIsSubmitting(true);
+
+    const base = parseFloat(newBaseSalary);
+    const bonus = parseFloat(newBonus || "0");
+
+    if (isNaN(base) || base <= 0) {
+      setFormError("Base salary must be a positive number.");
+      setIsSubmitting(false);
+      return;
+    }
+    if (isNaN(bonus) || bonus < 0) {
+      setFormError("Bonus must be a non-negative number.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/employees/${id}/salaries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseAmount: base,
+          bonusAmount: bonus,
+          effectiveDate,
+        }),
+      });
+
+      if (res.ok) {
+        setNewBaseSalary("");
+        setNewBonus("");
+        setEffectiveDate(new Date().toISOString().split("T")[0]);
+        await fetchDetail();
+      } else {
+        const data = await res.json();
+        setFormError(data.error || "Failed to record salary change.");
+      }
+    } catch (err) {
+      console.error(err);
+      setFormError("Failed to submit request to server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -362,7 +431,167 @@ export default function EmployeeDetailPage({ params }: PageParams) {
               Salary History Timeline
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {/* Pay Trend Chart */}
+            {employee.salaries.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-text-primary mb-3 text-sm font-semibold">
+                  Pay History Trend ({employee.salaries[0].currency})
+                </h4>
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={[...employee.salaries].reverse().map((sal) => ({
+                        date: new Date(sal.effectiveDate).toLocaleDateString(
+                          "en-US",
+                          { month: "short", year: "2-digit" },
+                        ),
+                        salary: sal.baseAmount,
+                      }))}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorSalary"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="var(--color-accent, #6366f1)"
+                            stopOpacity={0.2}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="var(--color-accent, #6366f1)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255, 255, 255, 0.05)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: "var(--text-muted)", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: "var(--text-muted)", fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(val) =>
+                          formatCurrency(val, employee.salaries[0].currency)
+                        }
+                      />
+                      <ChartTooltip
+                        contentStyle={{
+                          backgroundColor: "var(--background, #0a0a0a)",
+                          borderColor: "var(--border, #27272a)",
+                          borderRadius: "8px",
+                        }}
+                        labelStyle={{ color: "var(--text-muted)" }}
+                        itemStyle={{ color: "var(--text-primary)" }}
+                        formatter={(val) => [
+                          formatCurrency(
+                            val as number,
+                            employee.salaries[0].currency,
+                          ),
+                          "Base Salary",
+                        ]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="salary"
+                        stroke="var(--color-accent, #6366f1)"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorSalary)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Record Salary Change Form */}
+            <div className="border-border bg-background/20 rounded-xl border p-4">
+              <h4 className="text-text-primary mb-3 text-sm font-semibold">
+                Record Salary Change
+              </h4>
+              <form onSubmit={handleSalaryChangeSubmit} className="space-y-4">
+                {formError && (
+                  <div className="bg-destructive/10 border-destructive/20 text-destructive rounded-lg border p-3 text-xs font-medium">
+                    {formError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                      New Base Salary ({employee.salaries[0]?.currency || "USD"}
+                      )
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="any"
+                      placeholder="e.g. 75000"
+                      value={newBaseSalary}
+                      onChange={(e) => setNewBaseSalary(e.target.value)}
+                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                      New Bonus ({employee.salaries[0]?.currency || "USD"})
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 5000"
+                      value={newBonus}
+                      onChange={(e) => setNewBonus(e.target.value)}
+                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                      Effective Date
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={effectiveDate}
+                      onChange={(e) => setEffectiveDate(e.target.value)}
+                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    type="submit"
+                    isLoading={isSubmitting}
+                  >
+                    Record Salary Change
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            {/* Salary Timeline List */}
             {employee.salaries.length === 0 ? (
               <div className="text-text-muted py-8 text-center italic">
                 No salary histories recorded.
