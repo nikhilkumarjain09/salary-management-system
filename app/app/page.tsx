@@ -78,9 +78,11 @@ export default async function AppPage() {
                 Audit pay bands, compa-ratios, and check for employees falling
                 outside midpoints.
               </p>
-              <Button variant="outline" size="sm" className="w-full">
-                Review Bands (Coming Soon)
-              </Button>
+              <Link href="/app/compensation-bands">
+                <Button variant="outline" size="sm" className="w-full">
+                  Review Bands
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

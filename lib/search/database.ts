@@ -40,6 +40,10 @@ export class DatabaseSearchService implements ISearchService {
           where.startDate.lte = new Date(filters.startDateMax);
         }
       }
+
+      if (filters.ids) {
+        where.id = { in: filters.ids };
+      }
     }
 
     // 3. Query execute using only required columns (SELECT projection)

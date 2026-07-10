@@ -60,6 +60,7 @@ export default function EmployeeDirectoryPage() {
   const [country, setCountry] = useState("");
   const [level, setLevel] = useState("");
   const [isActive, setIsActive] = useState("true");
+  const [outsideBand, setOutsideBand] = useState("all");
 
   // Sorting state
   const [sortBy, setSortBy] = useState("name");
@@ -162,6 +163,7 @@ export default function EmployeeDirectoryPage() {
     country,
     level,
     isActive,
+    outsideBand,
     sortBy,
     sortOrder,
   ]);
@@ -187,7 +189,7 @@ export default function EmployeeDirectoryPage() {
     setIsLoading(true);
     try {
       const activeCursor = cursorHistory[currentPageIndex];
-      let url = `/api/employees?limit=15&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+      let url = `/api/employees?limit=15&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
 
       if (debouncedSearch)
         url += `&query=${encodeURIComponent(debouncedSearch)}`;
@@ -195,6 +197,7 @@ export default function EmployeeDirectoryPage() {
       if (country) url += `&country=${encodeURIComponent(country)}`;
       if (level) url += `&level=${encodeURIComponent(level)}`;
       if (isActive !== "all") url += `&isActive=${isActive}`;
+      if (outsideBand !== "all") url += `&outsideBand=${outsideBand}`;
       if (activeCursor) url += `&cursor=${activeCursor}`;
 
       const res = await fetch(url);
@@ -215,6 +218,7 @@ export default function EmployeeDirectoryPage() {
     country,
     level,
     isActive,
+    outsideBand,
     sortBy,
     sortOrder,
     currentPageIndex,
@@ -253,6 +257,7 @@ export default function EmployeeDirectoryPage() {
     setCountry("");
     setLevel("");
     setIsActive("true");
+    setOutsideBand("all");
   };
 
   const refreshList = () => {
@@ -629,6 +634,42 @@ export default function EmployeeDirectoryPage() {
     { key: "level", label: "Level", sortable: true },
     { key: "country", label: "Country", sortable: true },
     {
+      key: "compaRatio",
+      label: "Compa-Ratio",
+      render: (item) => {
+        const ratio = (item as any).compaRatio;
+        if (ratio === undefined || ratio === null) {
+          return (
+            <span className="text-text-muted text-xs font-semibold">N/A</span>
+          );
+        }
+
+        const percent = (ratio * 100).toFixed(1);
+        let color = "text-emerald-500 bg-emerald-500/10";
+        let label = "Within Band";
+        if (ratio < 0.8) {
+          color = "text-amber-500 bg-amber-500/10";
+          label = "Underpaid";
+        } else if (ratio > 1.2) {
+          color = "text-rose-500 bg-rose-500/10";
+          label = "Premium";
+        }
+
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-text-primary font-mono text-sm font-semibold">
+              {percent}%
+            </span>
+            <span
+              className={`inline-flex w-fit items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${color}`}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       key: "isActive",
       label: "Status",
       render: (item) => (
@@ -665,7 +706,7 @@ export default function EmployeeDirectoryPage() {
       <main className="space-y-6">
         {/* Search & Filter Panel */}
         <Card className="border-border bg-surface p-4">
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 md:grid-cols-6">
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Search Name / ID
@@ -739,31 +780,45 @@ export default function EmployeeDirectoryPage() {
               </select>
             </div>
 
-            <div className="flex gap-2">
-              <div className="flex-1 space-y-1.5">
-                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                  Status
-                </label>
-                <select
-                  value={isActive}
-                  onChange={(e) => setIsActive(e.target.value)}
-                  className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-                >
-                  <option value="true">Active Only</option>
-                  <option value="false">Inactive Only</option>
-                  <option value="all">All</option>
-                </select>
-              </div>
-
-              <Button
-                variant="outline"
-                className="hover:bg-surface-hover hover:text-text-primary border-border shrink-0 border px-2.5 py-2"
-                onClick={handleClearFilters}
-                title="Clear Filters"
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                Status
+              </label>
+              <select
+                value={isActive}
+                onChange={(e) => setIsActive(e.target.value)}
+                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
               >
-                <FilterX size={16} />
-              </Button>
+                <option value="true">Active Only</option>
+                <option value="false">Inactive Only</option>
+                <option value="all">All</option>
+              </select>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                Band Status
+              </label>
+              <select
+                value={outsideBand}
+                onChange={(e) => setOutsideBand(e.target.value)}
+                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+              >
+                <option value="all">All</option>
+                <option value="true">Outside Band</option>
+                <option value="false">Within Band</option>
+              </select>
+            </div>
+
+            <Button
+              variant="outline"
+              className="hover:bg-surface-hover hover:text-text-primary border-border w-full shrink-0 border px-2.5 py-2"
+              onClick={handleClearFilters}
+              title="Clear Filters"
+            >
+              <FilterX size={16} className="mr-1.5" />
+              Clear
+            </Button>
           </div>
         </Card>
 

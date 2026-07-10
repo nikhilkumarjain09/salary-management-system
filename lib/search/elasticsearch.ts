@@ -124,6 +124,10 @@ export class ElasticsearchSearchService implements ISearchService {
         if (filters.startDateMax) range.lte = filters.startDateMax;
         filterClauses.push({ range: { startDate: range } });
       }
+
+      if (filters.ids) {
+        filterClauses.push({ terms: { id: filters.ids } });
+      }
     }
 
     // 3. Sorting mappings (mapping sortBy fields to indexed keywords)

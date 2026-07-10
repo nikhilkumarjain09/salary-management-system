@@ -10,6 +10,7 @@ export interface SearchParams {
     isActive?: boolean;
     startDateMin?: string;
     startDateMax?: string;
+    ids?: string[];
   };
   cursor?: string; // Pagination cursor
   limit?: number; // Items per page

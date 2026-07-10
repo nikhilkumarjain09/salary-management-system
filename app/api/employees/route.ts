@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
     isActiveStr === "true" ? true : isActiveStr === "false" ? false : undefined;
   const startDateMin = searchParams.get("startDateMin") || undefined;
   const startDateMax = searchParams.get("startDateMax") || undefined;
+  const outsideBand = searchParams.get("outsideBand") || undefined;
 
   const cursor = searchParams.get("cursor") || undefined;
   const limit = parseInt(searchParams.get("limit") || "50", 10);
@@ -78,6 +79,48 @@ export async function GET(req: NextRequest) {
   const sortOrder = (searchParams.get("sortOrder") || "asc") as "asc" | "desc";
 
   try {
+    let matchIds: string[] | undefined = undefined;
+    if (outsideBand === "true" || outsideBand === "false") {
+      const employeesWithSalaries = await prisma.employee.findMany({
+        select: {
+          id: true,
+          department: true,
+          level: true,
+          country: true,
+          salaries: {
+            orderBy: { effectiveDate: "desc" },
+            take: 1,
+            select: {
+              baseAmount: true,
+            },
+          },
+        },
+      });
+
+      const bands = await prisma.compensationBand.findMany();
+      const bandMap = new Map(
+        bands.map((b) => [`${b.department}|${b.level}|${b.country}`, b]),
+      );
+
+      const computedIds: string[] = [];
+      for (const emp of employeesWithSalaries) {
+        const salary = emp.salaries[0];
+        const band = bandMap.get(
+          `${emp.department}|${emp.level}|${emp.country}`,
+        );
+        if (salary && band && band.midAmount > 0) {
+          const compaRatio = salary.baseAmount / band.midAmount;
+          const isOutside = compaRatio < 0.8 || compaRatio > 1.2;
+          if (outsideBand === "true" && isOutside) {
+            computedIds.push(emp.id);
+          } else if (outsideBand === "false" && !isOutside) {
+            computedIds.push(emp.id);
+          }
+        }
+      }
+      matchIds = computedIds;
+    }
+
     // 3. Delegate search request to configured SearchService
     const result = await searchService.search({
       query,
@@ -88,12 +131,79 @@ export async function GET(req: NextRequest) {
         isActive,
         startDateMin,
         startDateMax,
+        ids: matchIds,
       },
       cursor,
       limit,
       sortBy,
       sortOrder,
     });
+
+    // 4. Optionally enrich with compa-ratio data
+    const enrichCompa = searchParams.get("enrichCompa") === "true";
+    if (enrichCompa && result.employees.length > 0) {
+      const empIds = result.employees.map(
+        (e: Record<string, unknown>) => e.id as string,
+      );
+
+      // Fetch latest salary for each employee
+      const salaries = await prisma.salaryRecord.findMany({
+        where: { employeeId: { in: empIds } },
+        orderBy: { effectiveDate: "desc" },
+        distinct: ["employeeId"],
+        select: {
+          employeeId: true,
+          baseAmount: true,
+          currency: true,
+        },
+      });
+      const salaryMap = new Map(salaries.map((s) => [s.employeeId, s]));
+
+      // Fetch all relevant bands
+      const bandKeys = [
+        ...new Set(
+          result.employees.map(
+            (e: Record<string, unknown>) =>
+              `${e.department}|${e.level}|${e.country}`,
+          ),
+        ),
+      ];
+      const bands = await prisma.compensationBand.findMany({
+        where: {
+          OR: bandKeys.map((key) => {
+            const [dept, lvl, ctry] = (key as string).split("|");
+            return { department: dept, level: lvl, country: ctry };
+          }),
+        },
+      });
+      const bandMap = new Map(
+        bands.map((b) => [`${b.department}|${b.level}|${b.country}`, b]),
+      );
+
+      // Enrich each employee
+      result.employees = result.employees.map(
+        (emp: Record<string, unknown>) => {
+          const salary = salaryMap.get(emp.id as string);
+          const band = bandMap.get(
+            `${emp.department}|${emp.level}|${emp.country}`,
+          );
+
+          let compaRatio: number | null = null;
+          let bandStatus: string | null = null;
+
+          if (salary && band && band.midAmount > 0) {
+            compaRatio = Number(
+              (salary.baseAmount / band.midAmount).toFixed(3),
+            );
+            if (compaRatio < 0.8) bandStatus = "below";
+            else if (compaRatio > 1.2) bandStatus = "above";
+            else bandStatus = "within";
+          }
+
+          return { ...emp, compaRatio, bandStatus };
+        },
+      );
+    }
 
     return NextResponse.json(result);
   } catch (error) {

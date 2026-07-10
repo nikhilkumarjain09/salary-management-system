@@ -16,6 +16,7 @@ import {
   Users,
   ArrowRight,
   FileText,
+  Layers,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -144,6 +145,17 @@ function CommandPaletteInner({
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/audit-log");
+        onClose();
+      },
+    },
+    {
+      id: "page-compensation-bands",
+      label: "Compensation Bands",
+      sublabel: "/app/compensation-bands",
+      icon: <Layers size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/compensation-bands");
         onClose();
       },
     },
