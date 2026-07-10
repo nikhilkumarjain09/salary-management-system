@@ -60,8 +60,10 @@ export async function GET(req: NextRequest) {
         distinct: ["action"],
       });
       return NextResponse.json({
-        entityTypes: entityTypes.map((e) => e.entityType).sort(),
-        actions: actions.map((a) => a.action).sort(),
+        entityTypes: entityTypes
+          .map((e: { entityType: string }) => e.entityType)
+          .sort(),
+        actions: actions.map((a: { action: string }) => a.action).sort(),
       });
     }
 

@@ -24,8 +24,20 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
-    await prisma.savedReport.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+      await tx.savedReport.delete({
+        where: { id },
+      });
+
+      await tx.auditLogEntry.create({
+        data: {
+          actorLabel: session.user?.email || "System",
+          action: "DELETE",
+          entityType: "SAVED_REPORT",
+          entityId: report.id,
+          beforeValue: report as any,
+        },
+      });
     });
 
     return NextResponse.json({ success: true });

@@ -183,52 +183,52 @@ export default function OrgChartPage() {
       <div key={emp.id} className="relative mt-3">
         {/* Connection line styles */}
         {depth > 0 && (
-          <div className="border-border/40 pointer-events-none absolute top-5 -left-[20px] w-[20px] border-t" />
+          <div className="border-border/40 pointer-events-none absolute top-5 -left-[16px] w-[16px] border-t sm:-left-[20px] sm:w-[20px]" />
         )}
 
         {/* Node card */}
         <div
           id={`org-node-${emp.id}`}
-          className={`bg-surface flex max-w-lg items-center gap-4 rounded-xl border p-4 transition-all duration-300 ${
+          className={`bg-surface flex max-w-xs items-center gap-2 rounded-xl border p-3 transition-all duration-300 sm:max-w-lg sm:gap-4 sm:p-4 ${
             isHighlighted
               ? "border-accent ring-accent/30 scale-[1.02] shadow-lg ring-2"
               : "border-border hover:border-border/80"
           }`}
         >
           {/* Node Icon */}
-          <div className="bg-background border-border/50 text-text-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border">
-            <User size={18} />
+          <div className="bg-background border-border/50 text-text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border sm:h-10 sm:w-10">
+            <User size={16} className="sm:h-[18px] sm:w-[18px]" />
           </div>
 
           {/* Node Meta info */}
           <div className="min-w-0 flex-1">
             <Link
               href={`/app/employees/${emp.id}`}
-              className="text-text-primary hover:text-accent block truncate text-sm font-semibold transition-colors"
+              className="text-text-primary hover:text-accent block truncate text-xs font-semibold transition-colors sm:text-sm"
             >
               {emp.name}
             </Link>
-            <span className="text-text-muted mt-0.5 block truncate text-xs">
+            <span className="text-text-muted mt-0.5 block truncate text-[10px] sm:text-xs">
               {emp.level} • {emp.department}
             </span>
           </div>
 
           {/* Expansion Action controls */}
           {emp.hasReports && (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span className="text-text-muted bg-background border-border/50 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold">
-                <Users size={10} />
+            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+              <span className="text-text-muted bg-background border-border/50 inline-flex items-center gap-0.5 rounded border px-1 py-0.5 text-[9px] font-semibold sm:gap-1 sm:px-1.5 sm:text-[10px]">
+                <Users size={8} className="sm:h-[10px] sm:w-[10px]" />
                 {emp.reportsCount}
               </span>
               <button
                 onClick={() => handleToggle(emp.id)}
-                className="text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-md p-1 transition-colors"
+                className="text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-md p-0.5 transition-colors sm:p-1"
                 aria-label={isExpanded ? "Collapse reports" : "Expand reports"}
               >
                 {isExpanded ? (
-                  <ChevronDown size={16} />
+                  <ChevronDown size={14} className="sm:h-4 sm:w-4" />
                 ) : (
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} className="sm:h-4 sm:w-4" />
                 )}
               </button>
             </div>
@@ -243,11 +243,11 @@ export default function OrgChartPage() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.15 }}
-              className="border-border/40 ml-5 overflow-hidden border-l pl-[36px]"
+              className="border-border/40 ml-2 overflow-hidden border-l pl-[16px] sm:ml-5 sm:pl-[36px]"
             >
               {isNodeLoading && (
-                <div className="relative mt-3 space-y-3 pl-[20px]">
-                  <div className="border-border/40 absolute top-5 -left-[20px] w-[20px] border-t" />
+                <div className="relative mt-3 space-y-3 pl-[16px] sm:pl-[20px]">
+                  <div className="border-border/40 absolute top-5 -left-[16px] w-[16px] border-t sm:-left-[20px] sm:w-[20px]" />
                   <Skeleton className="h-16 w-full max-w-lg" />
                 </div>
               )}

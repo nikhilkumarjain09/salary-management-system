@@ -46,11 +46,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const report = await prisma.savedReport.create({
-      data: {
-        name,
-        definition: JSON.stringify(definition),
-      },
+    const report = await prisma.$transaction(async (tx) => {
+      const rep = await tx.savedReport.create({
+        data: {
+          name,
+          definition: JSON.stringify(definition),
+        },
+      });
+
+      await tx.auditLogEntry.create({
+        data: {
+          actorLabel: session.user?.email || "System",
+          action: "CREATE",
+          entityType: "SAVED_REPORT",
+          entityId: rep.id,
+          afterValue: rep as any,
+        },
+      });
+
+      return rep;
     });
 
     return NextResponse.json(report, { status: 201 });
