@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String @id @default(uuid())
+  email        String @unique
+  passwordHash String
+}
+
+model Employee {
+  id           String         @id @default(uuid())
+  employeeCode String         @unique
+  name         String
+  department   String
+  level        String
+  country      String
+  startDate    DateTime
+  isActive     Boolean        @default(true)
+  
+  // Self-referential manager relation
+  managerId    String?
+  manager      Employee?      @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates Employee[]     @relation("EmployeeManager")
+  
+  // Relations
+  salaries     SalaryRecord[]
+
+  @@index([department])
+  @@index([country])
+  @@index([level])
+}
+
+// RATIONALE FOR APPEND-ONLY SALARY RECORDS:
+// Compensation changes are append-only to preserve a complete, auditable timeline of historical changes.
+// Rather than overwriting, a new SalaryRecord is appended, which allows calculation of historical trends,
+// back-dated pay analyses, and prevents accidental data loss.
+model SalaryRecord {
+  id             String   @id @default(uuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  baseAmount     Float    // Native currency base amount
+  currency       String   // e.g. "USD", "INR", "EUR"
+  bonusAmount    Float    // Native currency bonus amount
+  baseAmountUSD  Float    // Normalized base amount in USD
+  bonusAmountUSD Float    // Normalized bonus amount in USD
+  effectiveDate  DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([employeeId, effectiveDate])
+}
+
+model CompensationBand {
+  id         String @id @default(uuid())
+  department String
+  level      String
+  country    String
+  minAmount  Float
+  midAmount  Float
+  maxAmount  Float
+  currency   String
+
+  @@index([department, level, country])
+}
+
+model MarketBenchmark {
+  id              String @id @default(uuid())
+  department      String
+  level           String
+  country         String
+  benchmarkAmount Float
+  currency        String
+  percentile      Int
+  sourceLabel     String @default("Seeded illustrative data — not a live market feed")
+}
+
+// RATIONALE FOR APPEND-ONLY AUDIT LOG ENTRIES:
+// Audit log entries must be immutable and append-only to provide an untamperable and secure history
+// of actions (such as edits, creations, deactivations, and bulk actions) performed within the system.
+model AuditLogEntry {
+  id          String   @id @default(uuid())
+  actorLabel  String   // e.g., email or identifier of the user
+  action      String   // e.g., "CREATE", "UPDATE", "DEACTIVATE", "BULK_UPDATE"
+  entityType  String   // e.g., "EMPLOYEE", "SALARY"
+  entityId    String   // ID of the target record
+  beforeValue Json?   // JSON representing the before state
+  afterValue  Json?   // JSON representing the after state
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
