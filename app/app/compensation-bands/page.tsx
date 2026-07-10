@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { FormField } from "@/components/ui/FormField";
+import { z } from "zod";
 
 interface Band {
   id: string;
@@ -156,27 +157,33 @@ export default function CompensationBandsPage() {
     const mid = parseFloat(editForm.midAmount);
     const max = parseFloat(editForm.maxAmount);
 
-    // Client validation
-    if (isNaN(min) || min <= 0) {
-      setEditErrors((p) => ({ ...p, minAmount: "Must be a positive number" }));
-      setIsSubmitting(false);
-      return;
-    }
-    if (isNaN(mid) || mid <= 0) {
-      setEditErrors((p) => ({ ...p, midAmount: "Must be a positive number" }));
-      setIsSubmitting(false);
-      return;
-    }
-    if (isNaN(max) || max <= 0) {
-      setEditErrors((p) => ({ ...p, maxAmount: "Must be a positive number" }));
-      setIsSubmitting(false);
-      return;
-    }
-    if (min > mid || mid > max) {
-      setEditErrors((p) => ({
-        ...p,
-        global: "Amounts must satisfy: min <= mid <= max",
-      }));
+    const schema = z
+      .object({
+        minAmount: z.number().positive("Min amount must be greater than 0"),
+        midAmount: z.number().positive("Mid amount must be greater than 0"),
+        maxAmount: z.number().positive("Max amount must be greater than 0"),
+      })
+      .refine(
+        (data) =>
+          data.minAmount <= data.midAmount && data.midAmount <= data.maxAmount,
+        {
+          message: "Amounts must satisfy: min <= mid <= max",
+          path: ["global"],
+        },
+      );
+
+    const validation = schema.safeParse({
+      minAmount: min,
+      midAmount: mid,
+      maxAmount: max,
+    });
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      validation.error.issues.forEach((err) => {
+        const path = String(err.path[0] || "global");
+        fieldErrors[path] = err.message;
+      });
+      setEditErrors(fieldErrors);
       setIsSubmitting(false);
       return;
     }

@@ -28,6 +28,8 @@ import {
   CartesianGrid,
 } from "recharts";
 
+import { z } from "zod";
+
 interface SalaryRecord {
   id: string;
   baseAmount: number;
@@ -123,13 +125,22 @@ export default function EmployeeDetailPage({ params }: PageParams) {
     const base = parseFloat(newBaseSalary);
     const bonus = parseFloat(newBonus || "0");
 
-    if (isNaN(base) || base <= 0) {
-      setFormError("Base salary must be a positive number.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (isNaN(bonus) || bonus < 0) {
-      setFormError("Bonus must be a non-negative number.");
+    const schema = z.object({
+      baseAmount: z.number().positive("Base salary must be greater than 0"),
+      bonusAmount: z.number().nonnegative("Bonus must be 0 or greater"),
+      effectiveDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: "Effective date must be a valid date",
+      }),
+    });
+
+    const validation = schema.safeParse({
+      baseAmount: base,
+      bonusAmount: bonus,
+      effectiveDate,
+    });
+
+    if (!validation.success) {
+      setFormError(validation.error.issues[0].message);
       setIsSubmitting(false);
       return;
     }
@@ -138,11 +149,7 @@ export default function EmployeeDetailPage({ params }: PageParams) {
       const res = await fetch(`/api/employees/${id}/salaries`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          baseAmount: base,
-          bonusAmount: bonus,
-          effectiveDate,
-        }),
+        body: JSON.stringify(validation.data),
       });
 
       if (res.ok) {

@@ -22,24 +22,7 @@ export default async function AppPage() {
   }
 
   return (
-    <div className="bg-background text-text-primary mx-auto flex min-h-screen w-full max-w-7xl flex-col p-6 md:p-12">
-      <header className="border-border mb-8 flex items-center justify-between border-b pb-8">
-        <Logo size={28} />
-        <div className="flex items-center gap-4">
-          <span className="text-text-muted text-sm">{session.user?.email}</span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <Button type="submit" variant="outline" size="sm">
-              Sign Out
-            </Button>
-          </form>
-        </div>
-      </header>
-
+    <div className="bg-background text-text-primary mx-auto flex w-full max-w-7xl flex-col p-6 md:p-12">
       <main className="flex-1 space-y-8">
         <PageHeader
           title="HR Management Portal"

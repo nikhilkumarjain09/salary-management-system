@@ -13,6 +13,7 @@ import {
   CardContent,
 } from "@/components/ui/Card";
 import { FormField } from "@/components/ui/FormField";
+import { z } from "zod";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,10 +27,22 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
+    const schema = z.object({
+      email: z.string().email("Please enter a valid email address"),
+      password: z.string().min(6, "Password must be at least 6 characters"),
+    });
+
+    const validation = schema.safeParse({ email, password });
+    if (!validation.success) {
+      setError(validation.error.issues[0].message);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const res = await signIn("credentials", {
-        email,
-        password,
+        email: validation.data.email,
+        password: validation.data.password,
         redirect: false,
       });
 

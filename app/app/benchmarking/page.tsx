@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { ComparisonGauge } from "@/components/ui/ComparisonGauge";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface BenchmarkComparison {
   id: string;
@@ -309,7 +310,19 @@ export default function BenchmarkingPage() {
 
         {/* Right Side: Selected Group Comparison Gauge */}
         <div className="space-y-6 lg:col-span-1">
-          {selectedGroup ? (
+          {isLoading && !selectedGroup ? (
+            <Card className="border-border bg-surface space-y-4 p-6">
+              <div className="border-border/40 flex animate-pulse items-center gap-2 border-b pb-4">
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+              <Skeleton className="h-32 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </Card>
+          ) : selectedGroup ? (
             <Card className="border-border bg-surface space-y-4 p-6">
               <div className="border-border/40 flex items-center gap-2 border-b pb-4">
                 <BarChart2 className="text-accent shrink-0" size={20} />

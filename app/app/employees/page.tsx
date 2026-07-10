@@ -26,7 +26,10 @@ import { FormField } from "@/components/ui/FormField";
 import { ContextMenu, ContextMenuItem } from "@/components/ui/ContextMenu";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkActionBar } from "@/components/ui/BulkActionBar";
-import { createEmployeeSchema } from "@/lib/validations/employee";
+import {
+  createEmployeeSchema,
+  updateEmployeeSchema,
+} from "@/lib/validations/employee";
 
 interface Employee {
   id: string;
@@ -584,11 +587,27 @@ export default function EmployeeDirectoryPage() {
       managerId: editForm.managerId.trim() || null,
     };
 
+    // Client-side Zod Validation
+    const validation = updateEmployeeSchema.safeParse(payload);
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      const issues = validation.error.flatten().fieldErrors as Record<
+        string,
+        string[] | undefined
+      >;
+      Object.keys(issues).forEach((key) => {
+        fieldErrors[key] = issues[key]?.[0] || "";
+      });
+      setEditErrors(fieldErrors);
+      setIsEditSubmitting(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/employees/${editingEmployee.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(validation.data),
       });
 
       const resData = await res.json();

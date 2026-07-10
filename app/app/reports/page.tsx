@@ -13,6 +13,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { z } from "zod";
 import {
   Card,
   CardHeader,
@@ -122,7 +123,19 @@ export default function ReportsPage() {
 
   const handleSaveReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newReportName.trim()) return;
+
+    const schema = z.object({
+      name: z
+        .string()
+        .min(1, "Report name is required")
+        .max(100, "Name must be under 100 characters"),
+    });
+
+    const validation = schema.safeParse({ name: newReportName });
+    if (!validation.success) {
+      setError(validation.error.issues[0].message);
+      return;
+    }
 
     setIsSaving(true);
     setSuccessMsg(null);
@@ -133,7 +146,7 @@ export default function ReportsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newReportName,
+          name: validation.data.name,
           definition: {
             dimensions: selectedDims,
             metrics: selectedMets,
