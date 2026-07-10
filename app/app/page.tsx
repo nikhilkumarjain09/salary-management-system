@@ -108,6 +108,26 @@ export default async function AppPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Organizational Chart</CardTitle>
+              <CardDescription>
+                Visualize company reporting structure
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-text-muted mb-4 text-sm">
+                Traverse corporate lines, manage direct reports, and identify
+                manager hierarchy paths.
+              </p>
+              <Link href="/app/org-chart">
+                <Button variant="outline" size="sm" className="w-full">
+                  Open Org Chart
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Pay Analysis & Reports</CardTitle>
               <CardDescription>Analyze pay equity and trends</CardDescription>
             </CardHeader>

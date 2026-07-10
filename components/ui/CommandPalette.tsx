@@ -18,6 +18,7 @@ import {
   FileText,
   Layers,
   BarChart2,
+  Network,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -168,6 +169,17 @@ function CommandPaletteInner({
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/benchmarking");
+        onClose();
+      },
+    },
+    {
+      id: "page-org-chart",
+      label: "Organizational Chart",
+      sublabel: "/app/org-chart",
+      icon: <Network size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/org-chart");
         onClose();
       },
     },
