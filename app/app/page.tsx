@@ -45,7 +45,7 @@ export default async function AppPage() {
           description="Welcome to the PaySight administrative dashboard. Select a section from the navigation or search using keyboard shortcut Ctrl+K."
         />
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle>Employee Directory</CardTitle>
@@ -81,6 +81,26 @@ export default async function AppPage() {
               <Link href="/app/compensation-bands">
                 <Button variant="outline" size="sm" className="w-full">
                   Review Bands
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Market Benchmarking</CardTitle>
+              <CardDescription>
+                Compare pay against industry rates
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-text-muted mb-4 text-sm">
+                Evaluate payroll rate competitiveness using seeded market
+                datasets by department, country, and level.
+              </p>
+              <Link href="/app/benchmarking">
+                <Button variant="outline" size="sm" className="w-full">
+                  Compare Benchmarks
                 </Button>
               </Link>
             </CardContent>

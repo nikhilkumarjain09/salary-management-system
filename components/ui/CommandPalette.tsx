@@ -17,6 +17,7 @@ import {
   ArrowRight,
   FileText,
   Layers,
+  BarChart2,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -156,6 +157,17 @@ function CommandPaletteInner({
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/compensation-bands");
+        onClose();
+      },
+    },
+    {
+      id: "page-benchmarking",
+      label: "Market Benchmarking",
+      sublabel: "/app/benchmarking",
+      icon: <BarChart2 size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/benchmarking");
         onClose();
       },
     },

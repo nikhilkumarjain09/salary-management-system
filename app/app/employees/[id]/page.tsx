@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ComparisonGauge } from "@/components/ui/ComparisonGauge";
 
 interface SalaryRecord {
   id: string;
@@ -233,6 +234,16 @@ export default function EmployeeDetailPage({ params }: PageParams) {
           icon={<Globe size={18} />}
         />
       </div>
+
+      {employee.benchmark && currentSalary && (
+        <ComparisonGauge
+          actual={currentSalary.baseAmount}
+          benchmark={employee.benchmark.benchmarkAmount}
+          currency={currencySymbol}
+          sourceLabel={employee.benchmark.sourceLabel}
+          label="Individual Pay vs. Market Rate"
+        />
+      )}
 
       {/* Split details layout */}
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-3">
