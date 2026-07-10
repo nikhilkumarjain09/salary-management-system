@@ -20,6 +20,7 @@ import {
   BarChart2,
   Network,
   TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -186,12 +187,23 @@ function CommandPaletteInner({
     },
     {
       id: "page-analytics",
-      label: "Pay Analysis & Reports",
+      label: "Analytics Dashboard",
       sublabel: "/app/analytics",
       icon: <TrendingUp size={16} />,
       section: PAGE_SECTION,
       onSelect: () => {
         router.push("/app/analytics");
+        onClose();
+      },
+    },
+    {
+      id: "page-reports",
+      label: "Custom Report Builder",
+      sublabel: "/app/reports",
+      icon: <FileSpreadsheet size={16} />,
+      section: PAGE_SECTION,
+      onSelect: () => {
+        router.push("/app/reports");
         onClose();
       },
     },

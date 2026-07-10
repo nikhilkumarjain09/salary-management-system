@@ -96,3 +96,10 @@ model AuditLogEntry {
 
   @@index([entityType, entityId])
 }
+
+model SavedReport {
+  id         String   @id @default(uuid())
+  name       String
+  definition String   // JSON configuration string containing chosen dimensions, metrics, filters
+  createdAt  DateTime @default(now())
+}
