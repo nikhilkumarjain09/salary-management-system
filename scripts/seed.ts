@@ -62,7 +62,7 @@ async function main() {
   console.log("Creating default HR Manager user...");
   // Hashed version of 'admin123' (bcrypt)
   const defaultPasswordHash =
-    "$2a$10$M68sN0rFqE2w.rTf.vK4uOzcMwq.Uu6F5K/1R29mJ70N0h6Gv71T2";
+    "$2b$10$nvTKkWD05Sp1lzd.XJJMgudGLYzJC.dGCjTv4HztsDDkpPIGr4.FK";
   await prisma.user.create({
     data: {
       email: "hr.manager@acme.com",
