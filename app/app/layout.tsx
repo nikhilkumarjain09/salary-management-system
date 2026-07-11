@@ -1,10 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Button } from "@/components/ui/Button";
+import { ProfileDropdown } from "@/components/ui/ProfileDropdown";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -73,24 +73,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <span className="text-text-muted hidden text-xs sm:inline">
-              {session.user?.email}
-            </span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/login" });
-              }}
-            >
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="h-8 cursor-pointer text-xs"
-              >
-                Sign Out
-              </Button>
-            </form>
+            {session.user && <ProfileDropdown user={session.user} />}
           </div>
         </div>
       </header>

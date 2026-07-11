@@ -26,7 +26,7 @@ export default async function AppPage() {
       <main className="flex-1 space-y-8">
         <PageHeader
           title="HR Management Portal"
-          description="Welcome to the PaySight administrative dashboard. Select a section from the navigation or search using keyboard shortcut Ctrl+K."
+          description="Welcome to the CompensaIQ administrative dashboard. Select a section from the navigation or search using keyboard shortcut Ctrl+K."
         />
 
         <PayQueryBox />
@@ -158,7 +158,7 @@ export default async function AppPage() {
       </main>
 
       <footer className="border-border/50 text-text-muted mt-16 border-t pt-8 text-center text-xs">
-        © 2026 PaySight Corp. All rights reserved.
+        © 2026 CompensaIQ Corp. All rights reserved.
       </footer>
     </div>
   );

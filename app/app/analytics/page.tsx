@@ -140,7 +140,7 @@ export default function AnalyticsDashboardPage() {
   return (
     <div className="bg-background text-text-primary mx-auto flex min-h-screen w-full max-w-7xl flex-col space-y-6 p-6 md:p-12">
       <PageHeader
-        title="PaySight Analytics"
+        title="CompensaIQ Analytics"
         description="Precomputed database-aggregates highlighting pay spreads, cost trends, and pay equity outlier states."
       />
 

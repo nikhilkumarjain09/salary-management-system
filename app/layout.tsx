@@ -3,9 +3,12 @@ import { CommandPaletteProvider } from "@/components/ui/CommandPalette";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PaySight — Employee Salary Management Software",
+  title: "CompensaIQ — Employee Salary Management Software",
   description:
     "Manage pay data, compensation bands, ratios, and run natural-language organizational pay analysis.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -21,7 +24,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme') || 'dark';
+                  const theme = localStorage.getItem('theme') || 'light';
                   if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
                   } else {
