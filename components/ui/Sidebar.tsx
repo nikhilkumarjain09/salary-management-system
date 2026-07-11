@@ -156,11 +156,9 @@ export function Sidebar({
         <nav className="space-y-5">
           {navGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-1.5">
-              {!isCollapsed && (
-                <span className="text-text-muted px-3 text-[10px] font-bold tracking-wider uppercase">
-                  {group.title}
-                </span>
-              )}
+              <span className={`text-text-muted px-3 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 overflow-hidden whitespace-nowrap block ${isCollapsed ? "h-0 opacity-0 pointer-events-none mb-0" : "h-auto opacity-100 mb-1"}`}>
+                {group.title}
+              </span>
               <div className="space-y-0.5">
                 {group.items.map((item, iIdx) => {
                   const isActive =
@@ -172,18 +170,20 @@ export function Sidebar({
                       key={iIdx}
                       href={item.href}
                       onClick={onCloseMobile}
-                      className={`relative group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
+                      className={`relative group flex items-center rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
                         isActive
                           ? "bg-accent/10 text-accent font-bold"
                           : "text-text-muted hover:text-text-primary hover:bg-surface-hover/60"
-                      } ${isCollapsed ? "justify-center" : ""}`}
+                      } ${isCollapsed ? "justify-center gap-0" : "gap-3"}`}
                     >
                       <span
-                        className={isActive ? "text-accent" : "text-text-muted"}
+                        className={`transition-colors duration-200 shrink-0 ${isActive ? "text-accent" : "text-text-muted"}`}
                       >
                         {item.icon}
                       </span>
-                      {!isCollapsed && <span>{item.label}</span>}
+                      <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100 ml-1"}`}>
+                        {item.label}
+                      </span>
                       {isCollapsed && (
                         <span className="absolute left-full ml-4 px-2 py-1.5 rounded bg-surface border border-border text-[10px] font-bold text-text-primary whitespace-nowrap shadow-xl opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-50">
                           {item.label}
@@ -198,11 +198,9 @@ export function Sidebar({
         </nav>
       </div>
 
-      {!isCollapsed && (
-        <div className="text-text-muted border-border/40 border-t pt-4 text-center text-[10px] select-none">
-          CompensaIQ v1.0.0
-        </div>
-      )}
+      <div className={`text-text-muted border-border/40 border-t pt-4 text-center text-[10px] select-none transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "h-0 opacity-0 border-t-0 pointer-events-none py-0 mt-0" : "h-auto opacity-100 py-2 mt-4"}`}>
+        CompensaIQ v1.0.0
+      </div>
     </div>
   );
 

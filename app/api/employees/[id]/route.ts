@@ -157,3 +157,59 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     );
   }
 }
+
+// DELETE /api/employees/[id] - Transactionally delete employee and write audit log
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  try {
+    const existing = await prisma.employee.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Create AuditLogEntry before deletion
+      await tx.auditLogEntry.create({
+        data: {
+          actorLabel: session.user?.email || "System",
+          action: "DELETE",
+          entityType: "EMPLOYEE",
+          entityId: id,
+          beforeValue: existing as any,
+        },
+      });
+
+      // Delete the employee
+      await tx.employee.delete({
+        where: { id },
+      });
+    });
+
+    // Post-commit search index removal and cache clear
+    await searchService.deleteFromIndex(id);
+    localCache.clear();
+
+    return NextResponse.json({
+      success: true,
+      message: "Employee removed successfully.",
+    });
+  } catch (error: any) {
+    console.error("Delete Employee API error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to delete employee" },
+      { status: 500 },
+    );
+  }
+}

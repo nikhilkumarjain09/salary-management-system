@@ -18,6 +18,10 @@ import {
   Building2,
   X,
   ChevronRight,
+  Globe,
+  Activity,
+  Sliders,
+  Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -29,6 +33,7 @@ import { FormField } from "@/components/ui/FormField";
 import { ContextMenu, ContextMenuItem } from "@/components/ui/ContextMenu";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkActionBar } from "@/components/ui/BulkActionBar";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 import {
   createEmployeeSchema,
   updateEmployeeSchema,
@@ -326,10 +331,17 @@ export default function EmployeeDirectoryPage() {
       variant: "destructive" as const,
       separator: true,
     },
+    {
+      label: "Remove/Delete",
+      icon: <Trash2 size={14} />,
+      onClick: () => openDeleteConfirm(emp),
+      variant: "destructive" as const,
+      separator: false,
+    },
   ];
 
   // ----------------------------------------------------------------
-  // Deactivate / reactivate
+  // Deactivate / reactivate / delete
   // ----------------------------------------------------------------
 
   const openDeactivateConfirm = (emp: Employee) => {
@@ -357,6 +369,33 @@ export default function EmployeeDirectoryPage() {
           }
         } catch (err) {
           console.error("Deactivate error:", err);
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  const openDeleteConfirm = (emp: Employee) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Remove Employee Record",
+      description: `WARNING: This will permanently delete ${emp.name} (${emp.employeeCode}) and all of their historical salary records. This action is irreversible.`,
+      variant: "destructive",
+      confirmLabel: "Delete Record",
+      isLoading: false,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await fetch(`/api/employees/${emp.id}`, {
+            method: "DELETE",
+          });
+          if (res.ok) {
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+            refreshList();
+          }
+        } catch (err) {
+          console.error("Delete error:", err);
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
         }
@@ -755,84 +794,94 @@ export default function EmployeeDirectoryPage() {
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Department
               </label>
-              <select
+              <CustomSelect
                 value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="">All Departments</option>
-                {metadata.departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
+                onChange={setDepartment}
+                options={[
+                  { value: "", label: "All Departments", icon: <Building2 size={14} className="text-text-muted/60" /> },
+                  ...metadata.departments.map((dept) => ({
+                    value: dept,
+                    label: dept,
+                    icon: <Building2 size={14} className="text-text-muted/80" />,
+                  })),
+                ]}
+                placeholder="All Departments"
+                icon={<Building2 size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Country
               </label>
-              <select
+              <CustomSelect
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="">All Countries</option>
-                {metadata.countries.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={setCountry}
+                options={[
+                  { value: "", label: "All Countries", icon: <Globe size={14} className="text-text-muted/60" /> },
+                  ...metadata.countries.map((c) => ({
+                    value: c,
+                    label: c === "US" ? "United States" : c === "IN" ? "India" : c === "UK" ? "United Kingdom" : c === "DE" ? "Germany" : c === "SG" ? "Singapore" : c === "BR" ? "Brazil" : c,
+                    icon: <Globe size={14} className="text-text-muted/80" />,
+                  })),
+                ]}
+                placeholder="All Countries"
+                icon={<Globe size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Level
               </label>
-              <select
+              <CustomSelect
                 value={level}
-                onChange={(e) => setLevel(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="">All Levels</option>
-                {metadata.levels.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
+                onChange={setLevel}
+                options={[
+                  { value: "", label: "All Levels", icon: <Layers size={14} className="text-text-muted/60" /> },
+                  ...metadata.levels.map((l) => ({
+                    value: l,
+                    label: l,
+                    icon: <Layers size={14} className="text-text-muted/80" />,
+                  })),
+                ]}
+                placeholder="All Levels"
+                icon={<Layers size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Status
               </label>
-              <select
+              <CustomSelect
                 value={isActive}
-                onChange={(e) => setIsActive(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="true">Active Only</option>
-                <option value="false">Inactive Only</option>
-                <option value="all">All</option>
-              </select>
+                onChange={setIsActive}
+                options={[
+                  { value: "all", label: "All Statuses", icon: <Activity size={14} className="text-text-muted/60" /> },
+                  { value: "true", label: "Active Only", icon: <Activity size={14} className="text-emerald-500" /> },
+                  { value: "false", label: "Inactive Only", icon: <Activity size={14} className="text-rose-500" /> },
+                ]}
+                placeholder="All Statuses"
+                icon={<Activity size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Band Status
               </label>
-              <select
+              <CustomSelect
                 value={outsideBand}
-                onChange={(e) => setOutsideBand(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="all">All</option>
-                <option value="true">Outside Band</option>
-                <option value="false">Within Band</option>
-              </select>
+                onChange={setOutsideBand}
+                options={[
+                  { value: "all", label: "All Bands", icon: <Sliders size={14} className="text-text-muted/60" /> },
+                  { value: "true", label: "Outside Band", icon: <Sliders size={14} className="text-rose-500" /> },
+                  { value: "false", label: "Within Band", icon: <Sliders size={14} className="text-emerald-500" /> },
+                ]}
+                placeholder="All Bands"
+                icon={<Sliders size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <Button
@@ -1062,6 +1111,34 @@ export default function EmployeeDirectoryPage() {
                       <div className="flex items-center gap-2.5">
                         <Eye size={14} className="text-accent" />
                         <span>View Full Salary Timeline</span>
+                      </div>
+                      <ChevronRight size={14} className="text-text-muted" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedViewEmployee(null);
+                        openDeactivateConfirm(selectedViewEmployee);
+                      }}
+                      className="flex w-full items-center justify-between bg-surface border border-border hover:bg-surface-hover/80 px-4 py-3 rounded-xl text-xs font-semibold text-text-primary transition-all cursor-pointer shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <UserX size={14} className="text-accent" />
+                        <span>{selectedViewEmployee.isActive ? "Deactivate Employee" : "Reactivate Employee"}</span>
+                      </div>
+                      <ChevronRight size={14} className="text-text-muted" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedViewEmployee(null);
+                        openDeleteConfirm(selectedViewEmployee);
+                      }}
+                      className="flex w-full items-center justify-between bg-surface border border-border hover:bg-rose-500/10 px-4 py-3 rounded-xl text-xs font-semibold text-rose-500 transition-all cursor-pointer shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Trash2 size={14} className="text-rose-500" />
+                        <span>Delete Record (Irreversible)</span>
                       </div>
                       <ChevronRight size={14} className="text-text-muted" />
                     </button>

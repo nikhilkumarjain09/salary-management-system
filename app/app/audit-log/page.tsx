@@ -11,12 +11,15 @@ import {
   Users,
   UserX,
   ArrowLeftRight,
+  FileSpreadsheet,
+  Activity,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageSizeSelector } from "@/components/ui/DataTable";
+import { CustomSelect } from "@/components/ui/CustomSelect";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -422,36 +425,40 @@ export default function AuditLogPage() {
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Entity Type
               </label>
-              <select
+              <CustomSelect
                 value={entityType}
-                onChange={(e) => setEntityType(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="">All Types</option>
-                {meta.entityTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={setEntityType}
+                options={[
+                  { value: "", label: "All Types", icon: <FileSpreadsheet size={14} className="text-text-muted/60" /> },
+                  ...meta.entityTypes.map((t) => ({
+                    value: t,
+                    label: t,
+                    icon: <FileSpreadsheet size={14} className="text-text-muted/80" />,
+                  })),
+                ]}
+                placeholder="All Types"
+                icon={<FileSpreadsheet size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Action
               </label>
-              <select
+              <CustomSelect
                 value={action}
-                onChange={(e) => setAction(e.target.value)}
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                <option value="">All Actions</option>
-                {meta.actions.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
+                onChange={setAction}
+                options={[
+                  { value: "", label: "All Actions", icon: <Activity size={14} className="text-text-muted/60" /> },
+                  ...meta.actions.map((a) => ({
+                    value: a,
+                    label: a,
+                    icon: <Activity size={14} className="text-text-muted/80" />,
+                  })),
+                ]}
+                placeholder="All Actions"
+                icon={<Activity size={14} className="text-text-muted/60" />}
+              />
             </div>
 
             <div className="space-y-1.5">
