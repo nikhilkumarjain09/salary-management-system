@@ -1,5 +1,11 @@
 import { Client } from "@elastic/elasticsearch";
-import { ISearchService, SearchParams, SearchResult } from "./search";
+import {
+  ISearchService,
+  SearchParams,
+  SearchResult,
+  DocumentSearchParams,
+  DocumentSearchResult,
+} from "./search";
 import { DatabaseSearchService } from "./database";
 
 export class ElasticsearchSearchService implements ISearchService {
@@ -266,6 +272,58 @@ export class ElasticsearchSearchService implements ISearchService {
     } catch (error) {
       console.error(
         `[Elasticsearch] Delete failed for employee ${employeeId}:`,
+        error,
+      );
+    }
+  }
+
+  async searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResult> {
+    return this.dbFallback.searchDocuments(params);
+  }
+
+  async syncDocumentIndex(document: any): Promise<void> {
+    try {
+      const exists = await this.client.indices.exists({ index: "documents" });
+      if (!exists) {
+        await this.client.indices.create({ index: "documents" });
+      }
+
+      await this.client.index({
+        index: "documents",
+        id: document.id,
+        document: {
+          id: document.id,
+          employeeId: document.employeeId,
+          fileName: document.fileName,
+          originalName: document.originalName,
+          description: document.description,
+          fileType: document.fileType,
+          fileSize: document.fileSize,
+          isConfidential: document.isConfidential,
+          uploadedBy: document.uploadedBy,
+          createdAt: document.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error(
+        `[Elasticsearch] Document Sync failed for document ${document.id}:`,
+        error,
+      );
+    }
+  }
+
+  async deleteDocumentFromIndex(documentId: string): Promise<void> {
+    try {
+      const exists = await this.client.indices.exists({ index: "documents" });
+      if (exists) {
+        await this.client.delete({
+          index: "documents",
+          id: documentId,
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[Elasticsearch] Document Delete failed for document ${documentId}:`,
         error,
       );
     }

@@ -24,10 +24,34 @@ export interface SearchResult {
   totalHits: number;
 }
 
+export interface DocumentSearchParams {
+  query: string;
+  filters?: {
+    employeeId?: string;
+    categoryId?: string;
+    tag?: string;
+    isConfidential?: boolean;
+    expiryStatus?: "valid" | "expired" | "expiring_soon";
+  };
+  cursor?: string;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface DocumentSearchResult {
+  documents: any[];
+  nextCursor: string | null;
+  totalHits: number;
+}
+
 export interface ISearchService {
   search(params: SearchParams): Promise<SearchResult>;
   syncIndex(employee: any): Promise<void>;
   deleteFromIndex(employeeId: string): Promise<void>;
+  searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResult>;
+  syncDocumentIndex(document: any): Promise<void>;
+  deleteDocumentFromIndex(documentId: string): Promise<void>;
 }
 
 const esUrl = process.env.ELASTICSEARCH_URL;

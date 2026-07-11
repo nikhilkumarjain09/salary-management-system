@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Calendar,
   AlertTriangle,
+  FileText,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +19,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ComparisonGauge } from "@/components/ui/ComparisonGauge";
+import { DocumentManager } from "@/components/ui/DocumentManager";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -80,6 +82,7 @@ export default function EmployeeDetailPage({ params }: PageParams) {
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"compensation" | "documents">("compensation");
 
   // Salary Record Form States
   const [newBaseSalary, setNewBaseSalary] = useState("");
@@ -431,252 +434,284 @@ export default function EmployeeDetailPage({ params }: PageParams) {
           </CardContent>
         </Card>
 
-        {/* Salary History timeline */}
-        <Card className="border-border bg-surface md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base font-bold">
-              Salary History Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Pay Trend Chart */}
-            {employee.salaries.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-text-primary mb-3 text-sm font-semibold">
-                  Pay History Trend ({employee.salaries[0].currency})
-                </h4>
-                <div className="h-48 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={[...employee.salaries].reverse().map((sal) => ({
-                        date: new Date(sal.effectiveDate).toLocaleDateString(
-                          "en-US",
-                          { month: "short", year: "2-digit" },
-                        ),
-                        salary: sal.baseAmount,
-                      }))}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="colorSalary"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="var(--color-accent, #6366f1)"
-                            stopOpacity={0.2}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="var(--color-accent, #6366f1)"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="rgba(255, 255, 255, 0.05)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: "var(--text-muted)", fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tick={{ fill: "var(--text-muted)", fontSize: 10 }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(val) =>
-                          formatCurrency(val, employee.salaries[0].currency)
-                        }
-                      />
-                      <ChartTooltip
-                        contentStyle={{
-                          backgroundColor: "var(--background, #0a0a0a)",
-                          borderColor: "var(--border, #27272a)",
-                          borderRadius: "8px",
-                        }}
-                        labelStyle={{ color: "var(--text-muted)" }}
-                        itemStyle={{ color: "var(--text-primary)" }}
-                        formatter={(val) => [
-                          formatCurrency(
-                            val as number,
-                            employee.salaries[0].currency,
-                          ),
-                          "Base Salary",
-                        ]}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="salary"
-                        stroke="var(--color-accent, #6366f1)"
-                        strokeWidth={2}
-                        fillOpacity={1}
-                        fill="url(#colorSalary)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
+        {/* Tabbed right-hand details section */}
+        <div className="space-y-6 md:col-span-2">
+          {/* Tab Selection Row */}
+          <div className="border-border/60 border-b flex gap-6 text-sm font-bold select-none mb-2">
+            <button
+              onClick={() => setActiveTab("compensation")}
+              className={`pb-3 px-1 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "compensation"
+                  ? "border-accent text-accent font-bold"
+                  : "border-transparent text-text-muted hover:text-text-primary"
+              }`}
+            >
+              <TrendingUp size={16} />
+              Salary & Compensation
+            </button>
+            <button
+              onClick={() => setActiveTab("documents")}
+              className={`pb-3 px-1 border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "documents"
+                  ? "border-accent text-accent font-bold"
+                  : "border-transparent text-text-muted hover:text-text-primary"
+              }`}
+            >
+              <FileText size={16} />
+              Documents
+            </button>
+          </div>
 
-            {/* Record Salary Change Form */}
-            <div className="border-border bg-background/20 rounded-xl border p-4">
-              <h4 className="text-text-primary mb-3 text-sm font-semibold">
-                Record Salary Change
-              </h4>
-              <form onSubmit={handleSalaryChangeSubmit} className="space-y-4">
-                {formError && (
-                  <div className="bg-destructive/10 border-destructive/20 text-destructive rounded-lg border p-3 text-xs font-medium">
-                    {formError}
+          {activeTab === "compensation" ? (
+            <Card className="border-border bg-surface">
+              <CardHeader>
+                <CardTitle className="text-base font-bold">
+                  Salary History Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Pay Trend Chart */}
+                {employee.salaries.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-text-primary mb-3 text-sm font-semibold">
+                      Pay History Trend ({employee.salaries[0].currency})
+                    </h4>
+                    <div className="h-48 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={[...employee.salaries].reverse().map((sal) => ({
+                            date: new Date(sal.effectiveDate).toLocaleDateString(
+                              "en-US",
+                              { month: "short", year: "2-digit" },
+                            ),
+                            salary: sal.baseAmount,
+                          }))}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="colorSalary"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="var(--color-accent, #6366f1)"
+                                stopOpacity={0.2}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="var(--color-accent, #6366f1)"
+                                stopOpacity={0.0}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="var(--border-muted, #1f1f23)"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="date"
+                            stroke="var(--text-muted, #71717a)"
+                            fontSize={10}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            stroke="var(--text-muted, #71717a)"
+                            fontSize={10}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(val) => {
+                              if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
+                              return val;
+                            }}
+                          />
+                          <ChartTooltip
+                            contentStyle={{
+                              backgroundColor: "var(--background, #0a0a0a)",
+                              borderColor: "var(--border, #27272a)",
+                              borderRadius: "8px",
+                            }}
+                            labelStyle={{ color: "var(--text-muted)" }}
+                            itemStyle={{ color: "var(--text-primary)" }}
+                            formatter={(val) => [
+                              formatCurrency(
+                                val as number,
+                                employee.salaries[0].currency,
+                              ),
+                              "Base Salary",
+                            ]}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="salary"
+                            stroke="var(--color-accent, #6366f1)"
+                            strokeWidth={2}
+                            fillOpacity={1}
+                            fill="url(#colorSalary)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                      New Base Salary ({employee.salaries[0]?.currency || "USD"}
-                      )
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      step="any"
-                      placeholder="e.g. 75000"
-                      value={newBaseSalary}
-                      onChange={(e) => setNewBaseSalary(e.target.value)}
-                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                      New Bonus ({employee.salaries[0]?.currency || "USD"})
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="e.g. 5000"
-                      value={newBonus}
-                      onChange={(e) => setNewBonus(e.target.value)}
-                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                      Effective Date
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={effectiveDate}
-                      onChange={(e) => setEffectiveDate(e.target.value)}
-                      className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    type="submit"
-                    isLoading={isSubmitting}
-                  >
+                {/* Record Salary Change Form */}
+                <div className="border-border bg-background/20 rounded-xl border p-4">
+                  <h4 className="text-text-primary mb-3 text-sm font-semibold">
                     Record Salary Change
-                  </Button>
-                </div>
-              </form>
-            </div>
+                  </h4>
+                  <form onSubmit={handleSalaryChangeSubmit} className="space-y-4">
+                    {formError && (
+                      <div className="bg-destructive/10 border-destructive/20 text-destructive rounded-lg border p-3 text-xs font-medium">
+                        {formError}
+                      </div>
+                    )}
 
-            {/* Salary Timeline List */}
-            {employee.salaries.length === 0 ? (
-              <div className="text-text-muted py-8 text-center italic">
-                No salary histories recorded.
-              </div>
-            ) : (
-              <div className="border-border relative ml-2 space-y-8 border-l pl-6">
-                {employee.salaries.map((sal, index) => {
-                  // Calculate raise progression
-                  let raiseAmount = 0;
-                  let raisePercent = 0;
-                  const previousSal = employee.salaries[index + 1]; // next in array since they are ordered desc
-
-                  if (previousSal) {
-                    raiseAmount = sal.baseAmount - previousSal.baseAmount;
-                    raisePercent = (raiseAmount / previousSal.baseAmount) * 100;
-                  }
-
-                  const formattedDate = new Date(
-                    sal.effectiveDate,
-                  ).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  });
-
-                  return (
-                    <div key={sal.id} className="relative">
-                      {/* Timeline dot marker */}
-                      <span className="border-border bg-surface absolute top-1.5 -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border">
-                        <span className="bg-accent h-1.5 w-1.5 rounded-full" />
-                      </span>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                          New Base Salary ({employee.salaries[0]?.currency || "USD"}
+                          )
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="0.01"
+                          step="any"
+                          placeholder="e.g. 75000"
+                          value={newBaseSalary}
+                          onChange={(e) => setNewBaseSalary(e.target.value)}
+                          className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                        />
+                      </div>
 
                       <div className="space-y-1.5">
-                        <span className="text-text-muted inline-block text-xs font-semibold tracking-wider uppercase">
-                          {formattedDate}
-                        </span>
+                        <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                          New Bonus ({employee.salaries[0]?.currency || "USD"})
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="e.g. 5000"
+                          value={newBonus}
+                          onChange={(e) => setNewBonus(e.target.value)}
+                          className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                        />
+                      </div>
 
-                        <div className="bg-background/30 border-border/30 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-text-primary text-base font-bold">
-                              {formatCurrency(sal.baseAmount, sal.currency)}
-                            </p>
-                            {sal.currency !== "USD" && (
-                              <p className="text-text-muted text-xs">
-                                USD equivalent:{" "}
-                                {formatCurrency(sal.baseAmountUSD, "USD")}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="text-right">
-                            {previousSal ? (
-                              <span
-                                className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
-                                  raiseAmount >= 0
-                                    ? "bg-emerald-500/10 text-emerald-500"
-                                    : "bg-rose-500/10 text-rose-500"
-                                }`}
-                              >
-                                {raiseAmount >= 0 ? "+" : ""}
-                                {formatCurrency(raiseAmount, sal.currency)} (
-                                {raisePercent.toFixed(1)}%)
-                              </span>
-                            ) : (
-                              <span className="bg-accent/10 text-accent inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold">
-                                Starting Salary
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      <div className="space-y-1.5">
+                        <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                          Effective Date
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={effectiveDate}
+                          onChange={(e) => setEffectiveDate(e.target.value)}
+                          className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+                        />
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        type="submit"
+                        isLoading={isSubmitting}
+                      >
+                        Record Salary Change
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Salary Timeline List */}
+                {employee.salaries.length === 0 ? (
+                  <div className="text-text-muted py-8 text-center italic">
+                    No salary histories recorded.
+                  </div>
+                ) : (
+                  <div className="border-border relative ml-2 space-y-8 border-l pl-6">
+                    {employee.salaries.map((sal, index) => {
+                      let raiseAmount = 0;
+                      let raisePercent = 0;
+                      const previousSal = employee.salaries[index + 1];
+
+                      if (previousSal) {
+                        raiseAmount = sal.baseAmount - previousSal.baseAmount;
+                        raisePercent = (raiseAmount / previousSal.baseAmount) * 100;
+                      }
+
+                      const formattedDate = new Date(
+                        sal.effectiveDate,
+                      ).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      });
+
+                      return (
+                        <div key={sal.id} className="relative">
+                          <span className="border-border bg-surface absolute top-1.5 -left-[31px] flex h-4 w-4 items-center justify-center rounded-full border">
+                            <span className="bg-accent h-1.5 w-1.5 rounded-full" />
+                          </span>
+
+                          <div className="space-y-1.5">
+                            <span className="text-text-muted inline-block text-xs font-semibold tracking-wider uppercase">
+                              {formattedDate}
+                            </span>
+
+                            <div className="bg-background/30 border-border/30 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-text-primary text-base font-bold">
+                                  {formatCurrency(sal.baseAmount, sal.currency)}
+                                </p>
+                                {sal.currency !== "USD" && (
+                                  <p className="text-text-muted text-xs">
+                                    USD equivalent:{" "}
+                                    {formatCurrency(sal.baseAmountUSD, "USD")}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="text-right">
+                                {previousSal ? (
+                                  <span
+                                    className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${
+                                      raiseAmount >= 0
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                    }`}
+                                  >
+                                    {raiseAmount >= 0 ? "+" : ""}
+                                    {formatCurrency(raiseAmount, sal.currency)} (
+                                    {raisePercent.toFixed(1)}%)
+                                  </span>
+                                ) : (
+                                  <span className="bg-accent/10 text-accent inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold">
+                                    Starting Salary
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <DocumentManager employeeId={id} />
+          )}
+        </div>
       </div>
     </div>
   );

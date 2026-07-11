@@ -36,6 +36,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: user.id,
             email: user.email,
+            role: user.role,
+            employeeId: user.employeeId,
           };
         } catch (error) {
           console.error("Authorize error:", error);
@@ -44,4 +46,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role;
+        token.employeeId = (user as any).employeeId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).role = token.role as string;
+        (session.user as any).employeeId = token.employeeId as string;
+      }
+      return session;
+    },
+  },
 });

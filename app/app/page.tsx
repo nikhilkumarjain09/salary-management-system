@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Activity,
   CheckCircle,
+  ChevronRight,
+  Calendar,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PayQueryBox } from "@/components/ui/PayQueryBox";
@@ -77,6 +79,12 @@ export default function HomeDashboardPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expirations, setExpirations] = useState<{
+    expired: number;
+    expiringSoon: number;
+    valid: number;
+    upcoming: any[];
+  } | null>(null);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -97,7 +105,21 @@ export default function HomeDashboardPage() {
         setIsLoading(false);
       }
     };
+
+    const fetchExpirations = async () => {
+      try {
+        const res = await fetch("/api/documents/expirations");
+        if (res.ok) {
+          const expData = await res.json();
+          setExpirations(expData);
+        }
+      } catch (err) {
+        console.error("Error loading expirations:", err);
+      }
+    };
+
     fetchAnalytics();
+    fetchExpirations();
   }, []);
 
   // Hide scrollbar on mount, restore on unmount for home page only
@@ -452,6 +474,144 @@ CompensaIQ
           </div>
         </div>
       )}
+
+      {/* Upcoming Document Expirations Widget */}
+      {expirations &&
+        (expirations.expired > 0 ||
+          expirations.expiringSoon > 0 ||
+          expirations.upcoming.length > 0) && (
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Summary Card */}
+            <Card className="border-border bg-surface md:col-span-1 p-5 flex flex-col justify-between">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="text-amber-500" size={18} />
+                  Document Expiry Tracking
+                </CardTitle>
+                <CardDescription className="text-text-muted text-xs mt-1">
+                  Overview of official employee document status
+                </CardDescription>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <span className="text-text-muted text-xs font-semibold">
+                      Expired Documents
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        expirations.expired > 0
+                          ? "bg-rose-500/10 text-rose-500"
+                          : "bg-surface-hover text-text-muted"
+                      }`}
+                    >
+                      {expirations.expired}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                    <span className="text-text-muted text-xs font-semibold">
+                      Expiring Within 30 Days
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        expirations.expiringSoon > 0
+                          ? "bg-amber-500/10 text-amber-500"
+                          : "bg-surface-hover text-text-muted"
+                      }`}
+                    >
+                      {expirations.expiringSoon}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-text-muted text-xs font-semibold">
+                      Valid Documents
+                    </span>
+                    <span className="bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded text-xs font-bold">
+                      {expirations.valid}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  HR Managers should immediately review expired items to maintain
+                  legal and compliance status.
+                </p>
+              </div>
+            </Card>
+
+            {/* Upcoming list */}
+            <Card className="border-border bg-surface md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base font-bold flex items-center gap-1.5">
+                  <Calendar className="text-accent" size={18} />
+                  Upcoming / Critical Expirations
+                </CardTitle>
+                <CardDescription className="text-text-muted text-xs">
+                  List of employee documents requiring immediate renewal
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {expirations.upcoming.length === 0 ? (
+                  <div className="text-text-muted text-xs italic py-8 text-center">
+                    No expiring documents tracked.
+                  </div>
+                ) : (
+                  <div className="divide-border/40 divide-y max-h-60 overflow-y-auto no-scrollbar">
+                    {expirations.upcoming.map((doc: any) => {
+                      const expiry = new Date(doc.expiryDate);
+                      const now = new Date();
+                      const isExpired = expiry < now;
+                      const diffDays = Math.ceil(
+                        (expiry.getTime() - now.getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      );
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-text-primary text-xs font-bold truncate">
+                              {doc.fileName}
+                            </p>
+                            <p className="text-text-muted text-[10px] truncate mt-0.5">
+                              Employee:{" "}
+                              <span className="font-semibold text-text-primary">
+                                {doc.employee.name}
+                              </span>{" "}
+                              ({doc.employee.employeeCode}) • {doc.category.name}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 ml-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                isExpired
+                                  ? "bg-rose-500/10 text-rose-500"
+                                  : "bg-amber-500/10 text-amber-500"
+                              }`}
+                            >
+                              {isExpired
+                                ? "Expired"
+                                : `Expiring in ${diffDays} days`}
+                            </span>
+                            <Link
+                              href={`/app/employees/${doc.employeeId}`}
+                              className="text-text-muted hover:text-accent p-1 transition-colors"
+                            >
+                              <ChevronRight size={14} />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
       {/* Navigational Quick Links Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

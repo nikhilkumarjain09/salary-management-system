@@ -7,9 +7,12 @@ generator client {
 }
 
 model User {
-  id           String @id @default(uuid())
-  email        String @unique
+  id           String    @id @default(uuid())
+  email        String    @unique
   passwordHash String
+  role         String    @default("HR_MANAGER") // Roles: HR_ADMIN, HR_MANAGER, DEPT_MANAGER, EMPLOYEE, FINANCE, PAYROLL
+  employeeId   String?   @unique
+  employee     Employee? @relation(fields: [employeeId], references: [id])
 }
 
 model Employee {
@@ -29,6 +32,8 @@ model Employee {
   
   // Relations
   salaries     SalaryRecord[]
+  user         User?
+  documents    Document[]
 
   @@index([name])
   @@index([startDate])
@@ -36,6 +41,65 @@ model Employee {
   @@index([country])
   @@index([level])
   @@index([isActive, department, level, country])
+}
+
+model Document {
+  id              String            @id @default(uuid())
+  employeeId      String
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  fileName        String
+  originalName    String
+  categoryId      String
+  category        DocumentCategory  @relation(fields: [categoryId], references: [id])
+  description     String?
+  fileType        String            // e.g. "pdf", "docx", "png"
+  fileSize        Int               // in bytes
+  uploadedBy      String?           // Email of user who uploaded
+  storageProvider String            // e.g. "cloudinary", "local"
+  storagePath     String            // Reference/ID in cloud storage
+  downloadUrl     String
+  previewUrl      String?
+  expiryDate      DateTime?
+  version         Int               @default(1)
+  isConfidential  Boolean           @default(false)
+  tags            DocumentTag[]     // Implicit many-to-many relation
+  versions        DocumentVersion[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([employeeId])
+  @@index([categoryId])
+  @@index([createdAt])
+}
+
+model DocumentVersion {
+  id            String   @id @default(uuid())
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  fileName      String
+  fileSize      Int
+  storagePath   String
+  downloadUrl   String
+  uploadedBy    String?
+  createdAt     DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model DocumentCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  isCustom  Boolean    @default(true)
+  documents Document[]
+  createdAt DateTime   @default(now())
+}
+
+model DocumentTag {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  documents Document[] // Implicit many-to-many
+  createdAt DateTime   @default(now())
 }
 
 // RATIONALE FOR APPEND-ONLY SALARY RECORDS:

@@ -1,5 +1,11 @@
 import { prisma } from "../prisma";
-import { ISearchService, SearchParams, SearchResult } from "./search";
+import {
+  ISearchService,
+  SearchParams,
+  SearchResult,
+  DocumentSearchParams,
+  DocumentSearchResult,
+} from "./search";
 import { Prisma } from "@prisma/client";
 
 export class DatabaseSearchService implements ISearchService {
@@ -112,6 +118,107 @@ export class DatabaseSearchService implements ISearchService {
   }
 
   async deleteFromIndex(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  async searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResult> {
+    const {
+      query,
+      filters,
+      cursor,
+      limit = 50,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = params;
+
+    const where: Prisma.DocumentWhereInput = {};
+
+    if (query) {
+      const sanitized = query.trim();
+      where.OR = [
+        { fileName: { contains: sanitized, mode: "insensitive" } },
+        { originalName: { contains: sanitized, mode: "insensitive" } },
+        { description: { contains: sanitized, mode: "insensitive" } },
+      ];
+    }
+
+    if (filters) {
+      if (filters.employeeId) {
+        where.employeeId = filters.employeeId;
+      }
+      if (filters.categoryId) {
+        where.categoryId = filters.categoryId;
+      }
+      if (filters.isConfidential !== undefined) {
+        where.isConfidential = filters.isConfidential;
+      }
+      if (filters.tag) {
+        where.tags = {
+          some: {
+            name: { equals: filters.tag, mode: "insensitive" },
+          },
+        };
+      }
+      if (filters.expiryStatus) {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        if (filters.expiryStatus === "expired") {
+          where.expiryDate = { lt: now };
+        } else if (filters.expiryStatus === "expiring_soon") {
+          where.expiryDate = {
+            gte: now,
+            lte: thirtyDaysFromNow,
+          };
+        } else if (filters.expiryStatus === "valid") {
+          where.OR = [
+            { expiryDate: { gt: thirtyDaysFromNow } },
+            { expiryDate: null },
+          ];
+        }
+      }
+    }
+
+    const take = limit + 1;
+    const orderByList: any[] = [];
+    orderByList.push({ [sortBy]: sortOrder });
+
+    const documents = await prisma.document.findMany({
+      where,
+      include: {
+        category: true,
+        tags: true,
+      },
+      orderBy: orderByList,
+      take,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : undefined,
+    });
+
+    let nextCursor: string | null = null;
+    const hasNextPage = documents.length > limit;
+
+    if (hasNextPage) {
+      const lastItem = documents[limit - 1];
+      nextCursor = lastItem.id;
+      documents.pop();
+    }
+
+    const totalHits = await prisma.document.count({ where });
+
+    return {
+      documents,
+      nextCursor,
+      totalHits,
+    };
+  }
+
+  async syncDocumentIndex(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  async deleteDocumentFromIndex(): Promise<void> {
     return Promise.resolve();
   }
 }
