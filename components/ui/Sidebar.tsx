@@ -124,36 +124,34 @@ export function Sidebar({
   ];
 
   const sidebarContent = (
-    <div className={`flex h-full flex-col justify-between ${isCollapsed ? "p-2" : "p-4"} transition-all duration-200`}>
+    <div className="flex h-full flex-col justify-between p-3.5">
       <div className="space-y-6">
         {/* Brand header */}
-        <div className="border-border/40 flex items-center justify-between border-b pb-2.5 min-h-[38px] overflow-hidden">
-          <div className="flex items-center gap-2 overflow-hidden shrink-0">
+        <div className="border-border/40 flex items-center justify-between border-b pb-2.5 min-h-[38px] overflow-hidden px-1">
+          <div className="flex items-center overflow-hidden shrink-0">
             <img
               src="/logo.png"
               alt="CompensaIQ Logo"
               className="h-6 w-6 rounded-md object-contain shrink-0 select-none"
             />
-            <span className={`text-sm font-bold tracking-tight text-text-primary transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"}`}>
+            <span className={`text-sm font-bold tracking-tight text-text-primary transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? "max-w-0 opacity-0 ml-0 pointer-events-none" : "max-w-[150px] opacity-100 ml-2"}`}>
               CompensaIQ
             </span>
           </div>
-          {!isCollapsed && (
-            <button
-              onClick={() => setIsCollapsed(true)}
-              className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-all duration-200 md:block cursor-pointer shrink-0"
-              title="Collapse Sidebar"
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className={`text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-all duration-300 ease-in-out md:block cursor-pointer shrink-0 ${isCollapsed ? "opacity-0 scale-90 w-0 h-0 pointer-events-none p-0" : "opacity-100 w-auto h-auto"}`}
+            title="Collapse Sidebar"
+          >
+            <ChevronLeft size={16} />
+          </button>
         </div>
 
         {/* Navigation list */}
         <nav className="space-y-5">
           {navGroups.map((group, gIdx) => (
             <div key={gIdx} className="space-y-1.5">
-              <span className={`text-text-muted px-3 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 overflow-hidden whitespace-nowrap block ${isCollapsed ? "h-0 opacity-0 pointer-events-none mb-0" : "h-auto opacity-100 mb-1"}`}>
+              <span className={`text-text-muted px-2.5 text-[10px] font-bold tracking-wider uppercase transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap block ${isCollapsed ? "max-h-0 opacity-0 mb-0 pointer-events-none" : "max-h-[20px] opacity-100 mb-1"}`}>
                 {group.title}
               </span>
               <div className="space-y-0.5">
@@ -167,18 +165,18 @@ export function Sidebar({
                       key={iIdx}
                       href={item.href}
                       onClick={onCloseMobile}
-                      className={`relative group flex items-center rounded-lg ${isCollapsed ? "px-2" : "px-3"} py-2.5 text-xs font-semibold transition-all ${
+                      className={`relative group flex items-center rounded-lg px-2.5 py-2.5 text-xs font-semibold transition-all duration-300 ease-in-out ${
                         isActive
                           ? "bg-accent/10 text-accent font-bold"
                           : "text-text-muted hover:text-text-primary hover:bg-surface-hover/60"
-                      } ${isCollapsed ? "justify-center gap-0" : "gap-3"}`}
+                      } gap-3`}
                     >
                       <span
                         className={`transition-colors duration-200 shrink-0 w-5 h-5 flex items-center justify-center ${isActive ? "text-accent" : "text-text-muted"}`}
                       >
                         {item.icon}
                       </span>
-                      <span className={`transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100 ml-1"}`}>
+                      <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? "max-w-0 opacity-0 pointer-events-none ml-0" : "max-w-[160px] opacity-100 ml-1"}`}>
                         {item.label}
                       </span>
                       {isCollapsed && (
@@ -195,7 +193,7 @@ export function Sidebar({
         </nav>
       </div>
 
-      <div className={`text-text-muted border-border/40 border-t pt-4 text-center text-[10px] select-none transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "h-0 opacity-0 border-t-0 pointer-events-none py-0 mt-0" : "h-auto opacity-100 py-2 mt-4"}`}>
+      <div className={`text-text-muted border-border/40 border-t pt-3 text-center text-[10px] select-none transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap px-1 ${isCollapsed ? "max-h-0 opacity-0 border-t-0 pointer-events-none py-0 mt-0" : "max-h-[30px] opacity-100 py-1.5 mt-3"}`}>
         CompensaIQ v1.0.0
       </div>
     </div>

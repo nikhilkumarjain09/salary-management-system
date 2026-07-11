@@ -1029,7 +1029,7 @@ export default function EmployeeDirectoryPage() {
   ];
 
   return (
-    <div className="bg-background text-text-primary mx-auto flex min-h-screen w-full max-w-7xl flex-col p-6 md:p-12">
+    <div className="bg-background text-text-primary mx-auto flex min-h-screen w-full max-w-7xl flex-col p-4 md:p-6">
       <PageHeader
         title="Employee Directory"
         description="Filter, search, sort, and manage details of ACME's complete payroll workforce."
@@ -1057,12 +1057,12 @@ export default function EmployeeDirectoryPage() {
         }
       />
 
-      <main className="space-y-6">
+      <main className="space-y-4">
         {/* Search & Filter Panel */}
-        <Card className="border-border bg-surface p-4">
-          <div className="space-y-4">
+        <Card className="border-border bg-surface p-3">
+          <div className="space-y-3">
             {/* Row 1 */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end">
               <div className="space-y-1.5">
                 <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                   Search Name / ID
@@ -1141,7 +1141,7 @@ export default function EmployeeDirectoryPage() {
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end pt-4 border-t border-border/10">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end pt-3 border-t border-border/10">
               <div className="space-y-1.5">
                 <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                   Level
