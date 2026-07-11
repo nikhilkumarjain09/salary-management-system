@@ -41,6 +41,7 @@ interface DataTableProps<T> {
   // Page Size selector
   pageSize?: number;
   onPageSizeChange?: (size: number) => void;
+  onRowClick?: (item: T) => void;
 }
 
 export function PageSizeSelector({
@@ -123,6 +124,7 @@ export function DataTable<T extends { id: string }>({
   virtualized = false,
   pageSize = 50,
   onPageSizeChange,
+  onRowClick,
 }: DataTableProps<T>) {
   const handleHeaderClick = (key: string, sortable?: boolean) => {
     if (sortable && onSort) {
@@ -338,9 +340,21 @@ export function DataTable<T extends { id: string }>({
                           onRowContextMenu(e, item);
                         }
                       }}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest('input[type="checkbox"]') ||
+                          target.closest("button")
+                        ) {
+                          return;
+                        }
+                        if (onRowClick) {
+                          onRowClick(item);
+                        }
+                      }}
                       className={`border-border/40 hover:bg-surface-hover/50 border-b transition-colors ${
                         isSelected ? "bg-accent/5" : ""
-                      }`}
+                      } ${onRowClick ? "cursor-pointer" : ""}`}
                       style={{ height: `${rowHeight}px` }}
                     >
                       {selectable && (

@@ -43,15 +43,17 @@ export function AppLayoutWrapper({ session, children }: AppLayoutWrapperProps) {
                 <Menu size={18} />
               </button>
 
-              {/* Sidebar toggle button on desktop */}
-              <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden cursor-pointer rounded p-1 transition-colors md:block"
-                title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-              </button>
+              {/* Sidebar toggle button on desktop (only when collapsed) */}
+              {isCollapsed && (
+                <button
+                  onClick={() => setIsCollapsed(false)}
+                  className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden cursor-pointer rounded p-1 transition-colors md:block"
+                  title="Expand Sidebar"
+                  aria-label="Expand sidebar"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              )}
 
               <span className="text-text-muted hidden text-xs font-semibold select-none md:inline">
                 CompensaIQ Admin Portal

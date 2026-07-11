@@ -128,12 +128,21 @@ export function Sidebar({
       <div className="space-y-6">
         {/* Brand header */}
         <div
-          className={`border-border/40 flex items-center border-b pb-2.5 ${
+          className={`border-border/40 flex items-center justify-between border-b pb-2.5 ${
             isCollapsed ? "justify-center" : ""
           }`}
         >
           {!isCollapsed ? (
-            <Logo size={24} />
+            <>
+              <Logo size={24} />
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-colors md:block cursor-pointer"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
           ) : (
             <img
               src="/logo.png"

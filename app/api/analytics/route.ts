@@ -268,7 +268,7 @@ export async function GET(req: NextRequest) {
           e."department",
           e."level",
           e."country",
-          AVG(s."baseAmountUSD") as avgPay
+          AVG(s."baseAmountUSD") as "avgPay"
         FROM "SalaryRecord" s
         INNER JOIN (
           SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -282,13 +282,13 @@ export async function GET(req: NextRequest) {
       SELECT 
         department,
         level,
-        MIN(avgPay) as minCountryPay,
-        MAX(avgPay) as maxCountryPay,
-        (MAX(avgPay) - MIN(avgPay)) as absoluteSpread,
-        (MAX(avgPay) / MIN(avgPay)) as ratioSpread
+        MIN("avgPay") as "minCountryPay",
+        MAX("avgPay") as "maxCountryPay",
+        (MAX("avgPay") - MIN("avgPay")) as "absoluteSpread",
+        (MAX("avgPay") / MIN("avgPay")) as "ratioSpread"
       FROM CountryAverages
       GROUP BY department, level
-      ORDER BY ratioSpread DESC
+      ORDER BY "ratioSpread" DESC
     `;
 
     const payEquity = equityRaw.map((e) => ({

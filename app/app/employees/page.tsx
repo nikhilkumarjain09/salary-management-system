@@ -16,7 +16,10 @@ import {
   ArrowDownToLine,
   Layers,
   Building2,
+  X,
+  ChevronRight,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -89,6 +92,7 @@ export default function EmployeeDirectoryPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [selectedViewEmployee, setSelectedViewEmployee] = useState<Employee | null>(null);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -860,6 +864,7 @@ export default function EmployeeDirectoryPage() {
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
           onRowContextMenu={handleRowContextMenu}
+          onRowClick={(emp) => setSelectedViewEmployee(emp)}
           virtualized
           pageSize={limit}
           onPageSizeChange={setLimit}
@@ -918,6 +923,175 @@ export default function EmployeeDirectoryPage() {
           },
         ]}
       />
+
+      {/* Employee Detail Slide-over Panel */}
+      <AnimatePresence>
+        {selectedViewEmployee && (
+          <>
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedViewEmployee(null)}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs cursor-pointer"
+            />
+
+            {/* Slide-over panel container */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 380, damping: 38 }}
+              className="bg-surface border-border fixed top-0 right-0 bottom-0 z-50 flex h-full w-full max-w-md flex-col border-l shadow-2xl p-6 md:p-8"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-border/40 pb-4">
+                <div>
+                  <h3 className="text-text-primary text-base font-bold">
+                    Employee Profile
+                  </h3>
+                  <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mt-0.5">
+                    Quick View
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedViewEmployee(null)}
+                  className="text-text-muted hover:text-text-primary hover:bg-surface-hover rounded p-1 transition-colors cursor-pointer animate-in"
+                  aria-label="Close details panel"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body Content */}
+              <div className="flex-1 overflow-y-auto py-6 space-y-6 no-scrollbar">
+                {/* Avatar and Name */}
+                <div className="flex flex-col items-center text-center space-y-3 pb-4 border-b border-border/40">
+                  <div className="bg-accent/15 text-accent flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold select-none shadow-inner animate-in">
+                    {selectedViewEmployee.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-text-primary text-lg font-bold">
+                      {selectedViewEmployee.name}
+                    </h4>
+                    <div className="flex items-center justify-center gap-2 mt-1">
+                      <span className="text-text-muted text-xs font-semibold">
+                        {selectedViewEmployee.employeeCode}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          selectedViewEmployee.isActive
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-rose-500/10 text-rose-500"
+                        }`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${selectedViewEmployee.isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        {selectedViewEmployee.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Job Metadata Grid */}
+                <div className="grid grid-cols-2 gap-4 bg-background/40 border border-border/40 rounded-xl p-4">
+                  <div className="space-y-0.5">
+                    <span className="text-text-muted text-[10px] font-bold tracking-wider uppercase">
+                      Department
+                    </span>
+                    <p className="text-text-primary text-sm font-semibold truncate">
+                      {selectedViewEmployee.department}
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-text-muted text-[10px] font-bold tracking-wider uppercase">
+                      Level
+                    </span>
+                    <p className="text-text-primary text-sm font-semibold truncate">
+                      {selectedViewEmployee.level}
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-text-muted text-[10px] font-bold tracking-wider uppercase">
+                      Country
+                    </span>
+                    <p className="text-text-primary text-sm font-semibold truncate">
+                      {selectedViewEmployee.country}
+                    </p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-text-muted text-[10px] font-bold tracking-wider uppercase">
+                      Start Date
+                    </span>
+                    <p className="text-text-primary text-sm font-semibold truncate">
+                      {new Date(selectedViewEmployee.startDate).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Links/Shortcuts */}
+                <div className="space-y-2.5">
+                  <h5 className="text-text-muted text-[10px] font-bold tracking-wider uppercase px-1">
+                    Compensation Actions
+                  </h5>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setSelectedViewEmployee(null);
+                        handleOpenEdit(selectedViewEmployee);
+                      }}
+                      className="flex w-full items-center justify-between bg-surface border border-border hover:bg-surface-hover/80 px-4 py-3 rounded-xl text-xs font-semibold text-text-primary transition-all cursor-pointer shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Edit size={14} className="text-accent" />
+                        <span>Edit Employee Profile</span>
+                      </div>
+                      <ChevronRight size={14} className="text-text-muted" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        router.push(`/app/employees/${selectedViewEmployee.id}`);
+                      }}
+                      className="flex w-full items-center justify-between bg-surface border border-border hover:bg-surface-hover/80 px-4 py-3 rounded-xl text-xs font-semibold text-text-primary transition-all cursor-pointer shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Eye size={14} className="text-accent" />
+                        <span>View Full Salary Timeline</span>
+                      </div>
+                      <ChevronRight size={14} className="text-text-muted" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-border/40 pt-4 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 hover:bg-surface-hover px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                  onClick={() => setSelectedViewEmployee(null)}
+                >
+                  Close Panel
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                  onClick={() => {
+                    router.push(`/app/employees/${selectedViewEmployee.id}`);
+                  }}
+                >
+                  Go to Profile
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Bulk Change Department Modal */}
       <Modal
