@@ -1,114 +1,178 @@
-# Salary Management System
+# CompensaIQ — Employee Salary Management Software
 
-An enterprise-grade Salary Management System built with Next.js, Prisma, Neon PostgreSQL, Auth.js (v5), Groq AI, and Elastic Cloud.
-
----
-
-## Technical Stack
-
-- **Framework**: Next.js 15 (App Router with Turbopack)
-- **Database**: Neon Serverless PostgreSQL
-- **ORM**: Prisma ORM v7 (Driver-adapter based architecture)
-- **Authentication**: Auth.js v5 (Credentials Provider)
-- **Search**: Elastic Cloud (Elasticsearch) with direct Database fallback
-- **AI Integration**: Groq API (Llama 3 classification shapes)
-- **Styling**: Vanilla CSS with Tailwind CSS tokens and themes
+An enterprise-grade, high-performance Salary Management System built with Next.js 16, Prisma ORM, Neon serverless PostgreSQL, Auth.js (v5), Groq AI, and Elastic Cloud (Elasticsearch) with direct PostgreSQL fallback.
 
 ---
 
-## Environment Variables Configuration
+## 1. Project Overview
 
-Copy `.env.example` to `.env` and fill in the required keys:
+### Purpose
+CompensaIQ is designed to replace fragile, slow, and security-vulnerable spreadsheets used by HR teams to manage compensation data. It provides a secure, consolidated platform for managing organizational salaries, conducting audit-logged updates, defining compensation bands, tracking compa-ratios, and executing complex, plain-English payroll queries.
+
+### Problem Statement
+As organizations grow to 10,000+ employees, managing compensation spreadsheets leads to:
+1.  **Data Loss & Auditing Failures**: Overwriting historical salary records instead of appending edits prevents compliance tracing.
+2.  **Performance Exhaustion**: Browsers crash when rendering tables of 10k+ rows without virtualization or pagination.
+3.  **Security Risks**: Exposing raw database SQL to natural language queries allows prompt injection and data exfiltration.
+4.  **Exchange Rate Drift**: Out-of-date currency comparisons make global equity parity impossible to calculate.
+
+### Target Users
+*   **HR Managers & Compensation Specialists**: Need to execute audits, update roles/salary structures, upload bulk new hires, and review pay equity.
+*   **CFOs & Budget Planners**: Need instant, grounded payroll aggregates and cost trajectories.
+
+### Core Goals
+*   Provide sub-100ms search, filter, and page transitions across 10,000+ employees.
+*   Maintain an immutable, append-only ledger for all salary revisions and audit logs.
+*   Implement a double-pass LLM query routing assistant that prevents database injection.
+
+---
+
+## 2. Technology Stack
+
+*   **Frontend**: React 19, Next.js 16 (App Router with Turbopack), Framer Motion, Recharts
+*   **Backend**: Next.js Server Components, API Route Handlers
+*   **Database**: Neon Serverless PostgreSQL
+*   **ORM**: Prisma ORM v7 (Driver-adapter based architecture)
+*   **Authentication**: Auth.js v5 (Credentials Provider, RBAC via session tokens)
+*   **Search**: Elastic Cloud (Elasticsearch v8) with direct PostgreSQL fallback
+*   **Storage Provider**: Cloudinary (Production) / Local ephemeral filesystem storage (Local Fallback)
+*   **AI Integration**: Groq API (Llama 3 classification and grounding)
+*   **Testing**: Vitest v4, `@testing-library/react`
+*   **Virtualization**: Custom React row virtualization
+
+---
+
+## 3. Project Structure
 
 ```bash
-cp .env.example .env
+├── .github/workflows/       # GitHub Actions CI pipeline
+├── app/
+│   ├── api/                 # REST API routes (employees, bulk actions, pay-query, documents)
+│   ├── app/                 # Next.js App Router views (analytics, directory, org-chart, audit-log)
+│   └── globals.css          # Tailwind CSS tokens and themes
+├── components/              # Shared React components
+│   └── ui/                  # Reusable UI elements (DataTable, CustomSelect, Sidebar)
+├── lib/
+│   ├── prisma.ts            # Client instantiation with Neon driver adapters
+│   ├── cache.ts             # Ephemeral metadata caching layer
+│   ├── search/              # Search service interfaces and implementations (Postgres/ES)
+│   ├── storage/             # Storage providers (Cloudinary/Local)
+│   └── validations/         # Zod API validation schemas
+├── prisma/                  # Prisma schemas and migration scripts
+├── scripts/                 # Index sync and database seeding scripts
+├── test/                    # Vitest unit and integration tests
+├── Dockerfile               # Multi-stage production container build
+└── docker-compose.yml       # Local database and app orchestration config
 ```
 
-| Variable                 | Scope        | Description                                                               |
-| :----------------------- | :----------- | :------------------------------------------------------------------------ |
-| `DATABASE_URL`           | **Required** | The connection string for your database (PostgreSQL in production).       |
-| `AUTH_SECRET`            | **Required** | A random 32-byte secret used to sign session cookies.                     |
-| `GROQ_API_KEY`           | **Required** | API Key from Groq Cloud console to enable the Natural Language query bar. |
-| `ELASTICSEARCH_URL`      | _Optional_   | The Elasticsearch HTTPS node URL from Elastic Cloud.                      |
-| `ELASTICSEARCH_USERNAME` | _Optional_   | Username for Elastic Cloud authentication (default: `elastic`).           |
-| `ELASTICSEARCH_PASSWORD` | _Optional_   | Password for Elastic Cloud authentication.                                |
+For detailed folder and layout diagrams, see [artifacts/architecture_and_design.md](file:///e:/salary-management-system/artifacts/architecture_and_design.md).
 
 ---
 
-## Local Setup (Zero-Manual-Step Sandbox)
+## 4. Architecture Overview
 
-1.  **Install dependencies**:
-    ```bash
-    pnpm install
-    ```
-2.  **Generate Prisma client**:
-    ```bash
-    pnpm prisma:generate
-    ```
-3.  **Run migrations and seed local database** (Uses SQLite fallback if `DATABASE_URL` is omitted):
-    ```bash
-    npx prisma migrate dev --name init
-    pnpm prisma:seed
-    ```
-4.  **Start development server**:
-    ```bash
-    pnpm dev
-    ```
+CompensaIQ is divided into decoupled service layers to ensure separation of concerns and high-availability:
 
----
+```mermaid
+graph TD
+    Client[Browser / Client] -->|HTTP Requests| NextApp[Next.js App Router]
+    NextApp -->|Session Auth| AuthJS[Auth.js v5]
+    NextApp -->|Driver Adapter| Prisma[Prisma ORM]
+    Prisma -->|Query SQL| Neon[Neon Serverless PostgreSQL]
+    NextApp -->|Search Params| SearchService[Search Service Factory]
+    SearchService -->|Query Indexes| ES[Elastic Cloud Elasticsearch]
+    SearchService -->|Fallback SQL| Neon
+    NextApp -->|Upload Streams| StorageService[Storage Service Factory]
+    StorageService -->|Asset Streams| Cloudinary[Cloudinary Provider]
+    StorageService -->|FS Writes| LocalFS[Local Filesystem Storage]
+```
 
-## Production Deployment Guide
-
-For a full step-by-step production runbook, please refer to the [DEPLOYMENT_RUNBOOK.md](file:///e:/salary-management-system/DEPLOYMENT_RUNBOOK.md) file.
-
-### 1. Neon Database Setup
-
-1.  Create a PostgreSQL Project on [Neon](https://neon.tech/).
-2.  Retrieve the Connection String (`postgresql://...`) and save it as `DATABASE_URL` in Vercel's environment variables.
-3.  Execute the migration command locally pointing to your Neon database URL:
-    ```bash
-    npx prisma migrate deploy
-    ```
-4.  Seed the production database with 10,000 employees and the default HR Manager user:
-    ```bash
-    pnpm prisma:seed
-    ```
-5.  Verify statistics:
-    ```bash
-    pnpm search:health
-    ```
-
-### 2. Elastic Cloud Setup
-
-1.  Provision an Elasticsearch deployment on [Elastic Cloud](https://cloud.elastic.co/).
-2.  Retrieve the HTTPS Endpoint, Username (`elastic`), and Password.
-3.  Expose these values as `ELASTICSEARCH_URL`, `ELASTICSEARCH_USERNAME`, and `ELASTICSEARCH_PASSWORD`.
-4.  Run the bulk indexer script to load the 10,000 seeded employees into your Elastic Cloud index:
-    ```bash
-    pnpm search:sync
-    ```
-
-### 3. Vercel Deployment
-
-1.  Connect your repository to Vercel.
-2.  Add all environment variables listed in `.env.example`.
-3.  Vercel will automatically run `prisma generate` during the `postinstall` step and compile Next.js production bundles.
+*   **Database Fallback**: If Elasticsearch encounters timeouts, the search router seamlessly falls back to PostgreSQL indexed query executions.
+*   **Safe AI Grounding**: Natural language queries go through an LLM classification pass to extract safe query parameters. These parameters drive pre-compiled SQL queries, completely eliminating SQL injection risks.
 
 ---
 
-## Troubleshooting
+## 5. Scalability Strategy
 
-### 1. Prisma 7 Engine Validation Failure
+To scale seamlessly from **10,000** to **1,000,000+** employees:
+1.  **Cursor-Based Pagination**: Employs base64-encoded search cursor arrays (`search_after` in Elasticsearch, primary keys in PostgreSQL) instead of offset limits, keeping query speeds constant.
+2.  **DOM Virtualization**: Renders only the visible rows inside the viewport, reducing DOM node memory overhead by 95%.
+3.  **Distributed Queues**: Bulk CSV uploads and indexing actions can be offloaded to task queues (e.g. Redis + BullMQ) to avoid serverless function timeouts.
 
-- **Error**: `Using engine type "client" requires either "adapter" or "accelerateUrl"`
-- **Cause**: In Prisma 7, the Rust query engine is disabled. You must provide a driver adapter.
-- **Resolution**: Our `lib/prisma.ts` dynamically configures the `@prisma/adapter-pg` or `@prisma/adapter-better-sqlite3` adapter based on the protocol specified in `DATABASE_URL`. Ensure your `DATABASE_URL` starts with `postgres://` or `postgresql://` in production.
+For complete scaling analyses, refer to [artifacts/scalability_and_performance.md](file:///e:/salary-management-system/artifacts/scalability_and_performance.md).
 
-### 2. Elasticsearch Failures and Fallbacks
+---
 
-- **Behavior**: If the Elasticsearch node goes offline or connection times out, the search bar queries will fail gracefully and fall back to PostgreSQL database searches automatically.
-- **Resolution**: Run `pnpm search:health` to check connection status. Check server logs to see the startup fallback messages: `[Search] ELASTICSEARCH_URL is not set. Falling back to DatabaseSearchService (PostgreSQL).`
+## 6. Security & Compliance
 
-### 3. Groq API Limits / Missing Key
+*   **Strict Parameter Whitelisting**: LLM output parameters are validated against a strict runtime whitelist to block injection.
+*   **Authentication & RBAC**: Session cookies restrict document modifications to authenticated `HR_ADMIN` roles.
+*   **Immutable Audit Logging**: Every create, update, or delete transaction writes the user identity, timestamps, and full before/after snapshots to the audit log.
 
-- **Behavior**: If the `GROQ_API_KEY` is missing or invalid, the Natural Language pay query assistant returns a user-friendly error asking to check the environment configuration instead of throwing a server crash.
+For a detailed security audit, see [artifacts/architecture_and_design.md#security](file:///e:/salary-management-system/artifacts/architecture_and_design.md#security).
+
+---
+
+## 7. Performance Optimizations
+
+*   **Composite Indexing**: Compound indexing on `(isActive, department, level, country)` optimizes multi-field filter scans.
+*   **Debounced Inputs**: Search inputs are debounced (200ms) to reduce API load.
+*   **Virtual Lists**: Prevent browser layout calculation lag on large tables.
+
+For exact benchmarks and execution analysis, review [artifacts/scalability_and_performance.md](file:///e:/salary-management-system/artifacts/scalability_and_performance.md).
+
+---
+
+## 8. Deployment & Execution
+
+### Local Setup
+1. Copy `.env.example` to `.env` and configure keys.
+2. Install dependencies: `pnpm install`
+3. Generate client: `pnpm prisma:generate`
+4. Migrate database: `npx prisma migrate dev --name init`
+5. Seed database: `pnpm prisma:seed`
+6. Start dev server: `pnpm dev`
+
+### Production Runbook
+Refer to [DEPLOYMENT_RUNBOOK.md](file:///e:/salary-management-system/DEPLOYMENT_RUNBOOK.md) for Neon PostgreSQL, Elastic Cloud, and Vercel hosting guidelines.
+
+### Docker Environment
+```bash
+docker-compose up --build
+```
+
+---
+
+## 9. Architectural Decision Records (ADRs)
+
+Detailed records of engineering tradeoffs and framework choices:
+*   [ADR-001: Framework Choice](file:///e:/salary-management-system/artifacts/adr/adr-001-framework.md)
+*   [ADR-002: Neon PostgreSQL Database](file:///e:/salary-management-system/artifacts/adr/adr-002-database.md)
+*   [ADR-003: Search Architecture](file:///e:/salary-management-system/artifacts/adr/adr-003-search-architecture.md)
+*   [ADR-004: Storage Provider Abstraction](file:///e:/salary-management-system/artifacts/adr/adr-004-storage-provider.md)
+*   [ADR-005: Pagination Strategy](file:///e:/salary-management-system/artifacts/adr/adr-005-pagination-strategy.md)
+*   [ADR-006: Virtualization](file:///e:/salary-management-system/artifacts/adr/adr-006-virtualization.md)
+*   [ADR-007: Authentication & RBAC](file:///e:/salary-management-system/artifacts/adr/adr-007-authentication.md)
+*   [ADR-008: Document Management](file:///e:/salary-management-system/artifacts/adr/adr-008-document-management.md)
+*   [ADR-009: Future Scalability](file:///e:/salary-management-system/artifacts/adr/adr-009-scalability-strategy.md)
+
+---
+
+## 10. AI-Assisted Development
+
+*   Prompts, output validations, and manual code corrections are documented in [artifacts/ai/ai_usage.md](file:///e:/salary-management-system/artifacts/ai/ai_usage.md).
+
+---
+
+## 11. Testing
+
+Run the test suite containing unit, integration, and mock search fallback assertions:
+```bash
+npx vitest run
+```
+Tests are located in the [test/](file:///e:/salary-management-system/test/) folder.
+
+---
+
+## 12. License
+Distributed under the MIT License. See `LICENSE` for details.
