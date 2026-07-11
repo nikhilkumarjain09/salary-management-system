@@ -345,16 +345,31 @@ Return ONLY a valid JSON object matching:
     // 2. Execute corresponding safe parameter query
     let queryResult: any = null;
     if (shape === "avg_pay_by_dimension") {
+      const dimension = params.dimension || "department";
+      if (!["department", "country", "level"].includes(dimension)) {
+        return NextResponse.json(
+          { error: "Invalid query dimension parameter." },
+          { status: 400 },
+        );
+      }
       queryResult = await queryAvgPay(
-        params.dimension || "department",
+        dimension as any,
         params.filterValue,
       );
     } else if (shape === "headcount_cost_trend") {
-      queryResult = await queryHeadcountTrend(params.limitMonths || 12);
+      const limitMonths = parseInt(String(params.limitMonths || "12"), 10);
+      queryResult = await queryHeadcountTrend(isNaN(limitMonths) ? 12 : limitMonths);
     } else if (shape === "pay_gap_by_dimension") {
       queryResult = await queryPayGap(params.department, params.level);
     } else if (shape === "compa_ratio_outliers") {
-      queryResult = await queryCompaOutliers(params.type || "all");
+      const type = params.type || "all";
+      if (!["underpaid", "premium", "all"].includes(type)) {
+        return NextResponse.json(
+          { error: "Invalid compa outlier type parameter." },
+          { status: 400 },
+        );
+      }
+      queryResult = await queryCompaOutliers(type as any);
     }
 
     // 3. Grounded Answer Generation Call to Groq
