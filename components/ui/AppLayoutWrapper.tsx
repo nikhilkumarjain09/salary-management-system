@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { ProfileDropdown } from "./ProfileDropdown";
-import { Menu } from "lucide-react";
+import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface AppLayoutWrapperProps {
   session: any;
@@ -32,15 +32,25 @@ export function AppLayoutWrapper({ session, children }: AppLayoutWrapperProps) {
       >
         {/* Top Header Navigation */}
         <header className="border-border bg-surface sticky top-0 z-40 border-b">
-          <div className="flex h-16 items-center justify-between px-6 py-4 md:px-8">
-            <div className="flex items-center gap-4">
+          <div className="flex h-12 items-center justify-between px-6 py-2 md:px-8">
+            <div className="flex items-center gap-3">
               {/* Menu button on mobile */}
               <button
                 onClick={() => setIsMobileSidebarOpen(true)}
                 className="text-text-muted hover:text-text-primary hover:bg-surface-hover block cursor-pointer rounded p-1 transition-colors md:hidden"
                 aria-label="Open sidebar menu"
               >
-                <Menu size={20} />
+                <Menu size={18} />
+              </button>
+
+              {/* Sidebar toggle button on desktop */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden cursor-pointer rounded p-1 transition-colors md:block"
+                title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
               </button>
 
               <span className="text-text-muted hidden text-xs font-semibold select-none md:inline">

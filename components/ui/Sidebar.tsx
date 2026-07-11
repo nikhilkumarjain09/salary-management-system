@@ -128,7 +128,7 @@ export function Sidebar({
       <div className="space-y-6">
         {/* Brand header */}
         <div
-          className={`border-border/40 flex items-center justify-between border-b pb-2 ${
+          className={`border-border/40 flex items-center border-b pb-2.5 ${
             isCollapsed ? "justify-center" : ""
           }`}
         >
@@ -141,17 +141,6 @@ export function Sidebar({
               className="h-6 w-6 rounded-md object-contain"
             />
           )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-colors md:block"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? (
-              <ChevronRight size={16} />
-            ) : (
-              <ChevronLeft size={16} />
-            )}
-          </button>
         </div>
 
         {/* Navigation list */}
@@ -174,12 +163,11 @@ export function Sidebar({
                       key={iIdx}
                       href={item.href}
                       onClick={onCloseMobile}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
+                      className={`relative group flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
                         isActive
                           ? "bg-accent/10 text-accent font-bold"
                           : "text-text-muted hover:text-text-primary hover:bg-surface-hover/60"
                       } ${isCollapsed ? "justify-center" : ""}`}
-                      title={isCollapsed ? item.label : undefined}
                     >
                       <span
                         className={isActive ? "text-accent" : "text-text-muted"}
@@ -187,6 +175,11 @@ export function Sidebar({
                         {item.icon}
                       </span>
                       {!isCollapsed && <span>{item.label}</span>}
+                      {isCollapsed && (
+                        <span className="absolute left-full ml-4 px-2 py-1.5 rounded bg-surface border border-border text-[10px] font-bold text-text-primary whitespace-nowrap shadow-xl opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none z-50">
+                          {item.label}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

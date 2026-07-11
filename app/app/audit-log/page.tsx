@@ -273,18 +273,28 @@ export default function AuditLogPage() {
   // Virtualization state & scroll listeners
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
 
   const rowHeight = 56;
   const viewportHeight = 560; // 10 rows
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+    const nextScroll = e.currentTarget.scrollTop;
+    if (
+      Math.abs(nextScroll - lastScrollTopRef.current) > 80 ||
+      nextScroll === 0 ||
+      nextScroll + viewportHeight >= e.currentTarget.scrollHeight - 10
+    ) {
+      lastScrollTopRef.current = nextScroll;
+      setScrollTop(nextScroll);
+    }
   };
 
   // Reset scroll to 0 if data changes or filters apply
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
+      lastScrollTopRef.current = 0;
       setScrollTop(0);
     }
   }, [entries]);
