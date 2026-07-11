@@ -105,14 +105,26 @@ export class ElasticsearchSearchService implements ISearchService {
 
     if (query) {
       const sanitized = query.trim();
-      mustClauses.push({
-        multi_match: {
-          query: sanitized,
-          fields: ["name^2", "employeeCode"],
-          fuzziness: "AUTO",
-          prefix_length: 2,
-        },
-      });
+      if (filters?.exactMatch) {
+        mustClauses.push({
+          bool: {
+            should: [
+              { term: { "name.raw": { value: sanitized, case_insensitive: true } } },
+              { term: { "employeeCode.raw": { value: sanitized, case_insensitive: true } } },
+            ],
+            minimum_should_match: 1,
+          },
+        });
+      } else {
+        mustClauses.push({
+          multi_match: {
+            query: sanitized,
+            fields: ["name^2", "employeeCode"],
+            fuzziness: "AUTO",
+            prefix_length: 2,
+          },
+        });
+      }
     } else {
       mustClauses.push({ match_all: {} });
     }

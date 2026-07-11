@@ -75,6 +75,7 @@ export default function EmployeeDirectoryPage() {
   const [level, setLevel] = useState("");
   const [isActive, setIsActive] = useState("true");
   const [outsideBand, setOutsideBand] = useState("all");
+  const [exactMatch, setExactMatch] = useState(false);
 
   // Sorting state
   const [sortBy, setSortBy] = useState("name");
@@ -215,8 +216,12 @@ export default function EmployeeDirectoryPage() {
       const activeCursor = cursorHistory[currentPageIndex];
       let url = `/api/employees?limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
 
-      if (debouncedSearch)
+      if (debouncedSearch) {
         url += `&query=${encodeURIComponent(debouncedSearch)}`;
+        if (exactMatch) {
+          url += `&exactMatch=true`;
+        }
+      }
       if (department) url += `&department=${encodeURIComponent(department)}`;
       if (country) url += `&country=${encodeURIComponent(country)}`;
       if (level) url += `&level=${encodeURIComponent(level)}`;
@@ -243,6 +248,7 @@ export default function EmployeeDirectoryPage() {
     level,
     isActive,
     outsideBand,
+    exactMatch,
     sortBy,
     sortOrder,
     currentPageIndex,
@@ -278,6 +284,7 @@ export default function EmployeeDirectoryPage() {
 
   const handleClearFilters = () => {
     setSearch("");
+    setExactMatch(false);
     setDepartment("");
     setCountry("");
     setLevel("");
@@ -404,9 +411,15 @@ export default function EmployeeDirectoryPage() {
           if (res.ok) {
             setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
             refreshList();
+          } else {
+            const errData = await res.json();
+            alert(errData.error || "Failed to delete employee record.");
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
           }
         } catch (err) {
           console.error("Delete error:", err);
+          alert("An unexpected network error occurred.");
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
         }
@@ -1023,6 +1036,21 @@ export default function EmployeeDirectoryPage() {
                   size={16}
                   className="text-text-muted/60 absolute top-2.5 left-3"
                 />
+              </div>
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="exactMatch"
+                  checked={exactMatch}
+                  onChange={(e) => setExactMatch(e.target.checked)}
+                  className="border-border bg-background text-accent focus:ring-accent h-3.5 w-3.5 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="exactMatch"
+                  className="text-text-muted hover:text-text-primary text-xs font-medium cursor-pointer transition-colors"
+                >
+                  Exact match search
+                </label>
               </div>
             </div>
 

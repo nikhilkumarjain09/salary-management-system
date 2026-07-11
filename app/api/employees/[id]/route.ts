@@ -191,6 +191,28 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         },
       });
 
+      // Clear managerId for any subordinates
+      await tx.employee.updateMany({
+        where: { managerId: id },
+        data: { managerId: null },
+      });
+
+      // Unlink any associated User account
+      await tx.user.updateMany({
+        where: { employeeId: id },
+        data: { employeeId: null },
+      });
+
+      // Delete child salary history records
+      await tx.salaryRecord.deleteMany({
+        where: { employeeId: id },
+      });
+
+      // Delete child document records
+      await tx.document.deleteMany({
+        where: { employeeId: id },
+      });
+
       // Delete the employee
       await tx.employee.delete({
         where: { id },

@@ -1226,11 +1226,17 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
                 {/* Embed Content Viewer */}
                 <div className="flex-1 bg-neutral-900 flex items-center justify-center p-4 relative overflow-y-auto">
                   {previewDoc.fileName.toLowerCase().endsWith(".pdf") ? (
-                    <iframe
-                      src={`${previewDoc.downloadUrl}#toolbar=0`}
-                      className="h-full w-full rounded border-0"
-                      title={previewDoc.fileName}
-                    />
+                    <object
+                      data={previewDoc.downloadUrl}
+                      type="application/pdf"
+                      className="h-full w-full rounded border-0 min-h-[500px]"
+                    >
+                      <iframe
+                        src={`${previewDoc.downloadUrl}#toolbar=0`}
+                        className="h-full w-full rounded border-0 min-h-[500px]"
+                        title={previewDoc.fileName}
+                      />
+                    </object>
                   ) : ["png", "jpg", "jpeg", "gif", "webp"].some((ext) =>
                       previewDoc.fileName.toLowerCase().endsWith(ext),
                     ) ? (

@@ -21,13 +21,20 @@ export class DatabaseSearchService implements ISearchService {
 
     const where: Prisma.EmployeeWhereInput = {};
 
-    // 1. Prefix search on name or employeeCode using B-Tree indexes
+    // 1. Prefix or exact search on name or employeeCode using B-Tree indexes
     if (query) {
       const sanitized = query.trim();
-      where.OR = [
-        { name: { startsWith: sanitized } },
-        { employeeCode: { startsWith: sanitized } },
-      ];
+      if (filters?.exactMatch) {
+        where.OR = [
+          { name: { equals: sanitized, mode: "insensitive" } },
+          { employeeCode: { equals: sanitized, mode: "insensitive" } },
+        ];
+      } else {
+        where.OR = [
+          { name: { startsWith: sanitized, mode: "insensitive" } },
+          { employeeCode: { startsWith: sanitized, mode: "insensitive" } },
+        ];
+      }
     }
 
     // 2. Advanced filtering using composite index @@index([isActive, department, level, country])

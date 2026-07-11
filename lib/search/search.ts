@@ -11,6 +11,7 @@ export interface SearchParams {
     startDateMin?: string;
     startDateMax?: string;
     ids?: string[];
+    exactMatch?: boolean;
   };
   cursor?: string; // Pagination cursor
   limit?: number; // Items per page

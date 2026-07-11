@@ -15,12 +15,15 @@ export class CloudinaryProvider implements IStorageProvider {
     fileName: string,
     _mimeType: string,
   ): Promise<UploadResult> {
+    const isImageOrPdf = /\.(pdf|png|jpg|jpeg|gif|webp)$/i.test(fileName);
+    const resourceType = isImageOrPdf ? "image" : "raw";
+
     return new Promise<UploadResult>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          resource_type: "auto",
+          resource_type: resourceType,
           folder: "employee_documents",
-          public_id: fileName.replace(/\.[^/.]+$/, ""), // Strip extension for clean ID
+          public_id: fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9.-]/g, "_"),
         },
         (error, result) => {
           if (error || !result) {
