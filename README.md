@@ -31,8 +31,6 @@ As organizations grow to 10,000+ employees, managing compensation spreadsheets l
 
 ### Product Demo Video
 *   Walkthrough Video: [/demo/video/product-demo.mp4](file:///e:/salary-management-system/demo/video/product-demo.mp4)
-*   Narration Script: [demo/narration.md](file:///e:/salary-management-system/demo/narration.md)
-*   Scene Sequencing Guide: [demo/demo-script.md](file:///e:/salary-management-system/demo/demo-script.md)
 
 ### Screenshot Gallery
 *   **Executive Dashboard**: [demo/screenshots/dashboard.png](file:///e:/salary-management-system/demo/screenshots/dashboard.png)

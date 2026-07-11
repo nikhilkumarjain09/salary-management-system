@@ -45,3 +45,8 @@ next-env.d.ts
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Local Demo scripts
+demo/narration.md
+demo/demo-script.md
+demo/demo-checklist.md
