@@ -177,6 +177,7 @@ export class ElasticsearchSearchService implements ISearchService {
       const esResponse = await this.client.search({
         index: "employees",
         size: limit,
+        track_total_hits: true,
         query: {
           bool: {
             must: mustClauses,

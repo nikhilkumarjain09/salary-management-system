@@ -79,7 +79,7 @@ export function PageSizeSelector({
       </button>
       {isOpen && (
         <div className="bg-surface border-border absolute bottom-full mb-1.5 left-0 w-36 rounded border shadow-xl z-50 p-1 flex flex-col gap-0.5 animate-in fade-in slide-in-from-bottom-1 duration-100">
-          {[50, 100, 200].map((size) => (
+          {[50, 100, 200, 500].map((size) => (
             <button
               key={size}
               onClick={() => {
