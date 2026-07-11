@@ -32,7 +32,7 @@ export function AppLayoutWrapper({ session, children }: AppLayoutWrapperProps) {
       >
         {/* Top Header Navigation */}
         <header className="border-border bg-surface sticky top-0 z-40 border-b">
-          <div className="flex h-12 items-center justify-between px-6 py-2 md:px-8">
+          <div className="flex h-14 items-center justify-between px-6 py-2 md:px-8">
             <div className="flex items-center gap-3">
               {/* Menu button on mobile */}
               <button
