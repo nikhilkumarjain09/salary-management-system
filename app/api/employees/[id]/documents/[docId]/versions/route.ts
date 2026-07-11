@@ -17,10 +17,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   const { docId } = await context.params;
   const user = session.user as any;
+  const userRole = user.role || "HR_MANAGER";
 
   // Role permissions check
   const allowedRoles = ["HR_ADMIN", "HR_MANAGER"];
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(userRole)) {
     return NextResponse.json(
       { error: "Forbidden: Insufficient privileges to upload versions" },
       { status: 403 },

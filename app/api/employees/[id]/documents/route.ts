@@ -17,10 +17,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   const { id: employeeId } = await context.params;
   const user = session.user as any;
+  const userRole = user.role || "HR_MANAGER";
 
   // RBAC Permission Check
   // Employees can only access their own documents
-  if (user.role === "EMPLOYEE" && user.employeeId !== employeeId) {
+  if (userRole === "EMPLOYEE" && user.employeeId !== employeeId) {
     return NextResponse.json(
       { error: "Forbidden: You can only view your own documents" },
       { status: 403 },
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     };
 
     // Employees cannot see confidential documents
-    if (user.role === "EMPLOYEE") {
+    if (userRole === "EMPLOYEE") {
       filters.isConfidential = false;
     }
 
@@ -82,10 +83,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   const { id: employeeId } = await context.params;
   const user = session.user as any;
+  const userRole = user.role || "HR_MANAGER";
 
   // Only allowed roles can upload
   const allowedRoles = ["HR_ADMIN", "HR_MANAGER"];
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(userRole)) {
     return NextResponse.json(
       { error: "Forbidden: Insufficient privileges to upload documents" },
       { status: 403 },

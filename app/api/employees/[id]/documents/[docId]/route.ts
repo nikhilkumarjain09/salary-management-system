@@ -17,10 +17,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
   const { docId } = await context.params;
   const user = session.user as any;
+  const userRole = user.role || "HR_MANAGER";
 
   // Role permissions check
   const allowedRoles = ["HR_ADMIN", "HR_MANAGER"];
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(userRole)) {
     return NextResponse.json(
       { error: "Forbidden: Insufficient privileges to update documents" },
       { status: 403 },
@@ -132,10 +133,11 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
   const { docId } = await context.params;
   const user = session.user as any;
+  const userRole = user.role || "HR_MANAGER";
 
   // Role permissions check
   const allowedRoles = ["HR_ADMIN", "HR_MANAGER"];
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(userRole)) {
     return NextResponse.json(
       { error: "Forbidden: Insufficient privileges to delete documents" },
       { status: 403 },

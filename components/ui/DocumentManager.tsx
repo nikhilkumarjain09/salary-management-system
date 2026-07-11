@@ -503,9 +503,9 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
     <div className="space-y-6">
       {/* Search & Filters Card */}
       <Card className="border-border bg-background p-4">
-        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
           {/* Text Search */}
-          <div className="space-y-1.5 md:col-span-2">
+          <div className="space-y-1.5 md:col-span-4">
             <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
               Search Documents
             </label>
@@ -525,7 +525,7 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
           </div>
 
           {/* Category Filter */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 md:col-span-3">
             <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
               Category
             </label>
@@ -541,7 +541,7 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
           </div>
 
           {/* Expiry filter */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 md:col-span-2">
             <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
               Expiry Status
             </label>
@@ -559,8 +559,8 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
           </div>
 
           {/* View mode toggle & Action */}
-          <div className="flex items-center gap-2">
-            <div className="border-border flex rounded-lg border p-1">
+          <div className="flex items-center gap-2 md:col-span-3">
+            <div className="border-border flex rounded-lg border p-1 shrink-0">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`rounded p-1 transition-colors cursor-pointer ${
@@ -585,7 +585,7 @@ export function DocumentManager({ employeeId }: DocumentManagerProps) {
             <Button
               onClick={() => setUploadModalOpen(true)}
               variant="primary"
-              className="flex-1 justify-center py-2 text-xs font-semibold flex items-center gap-1.5"
+              className="flex-1 justify-center py-2 text-xs font-semibold flex items-center gap-1.5 min-w-[90px]"
             >
               <UploadCloud size={14} />
               Upload
