@@ -27,7 +27,25 @@ As organizations grow to 10,000+ employees, managing compensation spreadsheets l
 
 ---
 
-## 2. Technology Stack
+## 2. Product Demo & Screenshots
+
+### Product Demo Video
+*   Walkthrough Video: [/demo/video/product-demo.mp4](file:///e:/salary-management-system/demo/video/product-demo.mp4)
+*   Narration Script: [demo/narration.md](file:///e:/salary-management-system/demo/narration.md)
+*   Scene Sequencing Guide: [demo/demo-script.md](file:///e:/salary-management-system/demo/demo-script.md)
+
+### Screenshot Gallery
+*   **Executive Dashboard**: [demo/screenshots/dashboard.png](file:///e:/salary-management-system/demo/screenshots/dashboard.png)
+*   **Virtualized Directory**: [demo/screenshots/employees.png](file:///e:/salary-management-system/demo/screenshots/employees.png)
+*   **Salary Timeline**: [demo/screenshots/employee-details.png](file:///e:/salary-management-system/demo/screenshots/employee-details.png)
+*   **Workforce Analytics**: [demo/screenshots/analytics.png](file:///e:/salary-management-system/demo/screenshots/analytics.png)
+*   **Document Management**: [demo/screenshots/documents.png](file:///e:/salary-management-system/demo/screenshots/documents.png)
+*   **Client CSV Parser**: [demo/screenshots/upload.png](file:///e:/salary-management-system/demo/screenshots/upload.png)
+*   **Secure Authentication**: [demo/screenshots/login.png](file:///e:/salary-management-system/demo/screenshots/login.png)
+
+---
+
+## 3. Technology Stack
 
 *   **Frontend**: React 19, Next.js 16 (App Router with Turbopack), Framer Motion, Recharts
 *   **Backend**: Next.js Server Components, API Route Handlers
@@ -42,7 +60,7 @@ As organizations grow to 10,000+ employees, managing compensation spreadsheets l
 
 ---
 
-## 3. Project Structure
+## 4. Project Structure
 
 ```bash
 ├── .github/workflows/       # GitHub Actions CI pipeline
@@ -69,7 +87,7 @@ For detailed folder and layout diagrams, see [artifacts/architecture_and_design.
 
 ---
 
-## 4. Architecture Overview
+## 5. Architecture Overview
 
 CompensaIQ is divided into decoupled service layers to ensure separation of concerns and high-availability:
 
@@ -92,7 +110,7 @@ graph TD
 
 ---
 
-## 5. Scalability Strategy
+## 6. Scalability Strategy
 
 To scale seamlessly from **10,000** to **1,000,000+** employees:
 1.  **Cursor-Based Pagination**: Employs base64-encoded search cursor arrays (`search_after` in Elasticsearch, primary keys in PostgreSQL) instead of offset limits, keeping query speeds constant.
@@ -103,7 +121,7 @@ For complete scaling analyses, refer to [artifacts/scalability_and_performance.m
 
 ---
 
-## 6. Security & Compliance
+## 7. Security & Compliance
 
 *   **Strict Parameter Whitelisting**: LLM output parameters are validated against a strict runtime whitelist to block injection.
 *   **Authentication & RBAC**: Session cookies restrict document modifications to authenticated `HR_ADMIN` roles.
@@ -113,7 +131,7 @@ For a detailed security audit, see [artifacts/architecture_and_design.md#securit
 
 ---
 
-## 7. Performance Optimizations
+## 8. Performance Optimizations
 
 *   **Composite Indexing**: Compound indexing on `(isActive, department, level, country)` optimizes multi-field filter scans.
 *   **Debounced Inputs**: Search inputs are debounced (200ms) to reduce API load.
@@ -123,7 +141,7 @@ For exact benchmarks and execution analysis, review [artifacts/scalability_and_p
 
 ---
 
-## 8. Deployment & Execution
+## 9. Deployment & Execution
 
 ### Local Setup
 1. Copy `.env.example` to `.env` and configure keys.
@@ -143,7 +161,7 @@ docker-compose up --build
 
 ---
 
-## 9. Architectural Decision Records (ADRs)
+## 10. Architectural Decision Records (ADRs)
 
 Detailed records of engineering tradeoffs and framework choices:
 *   [ADR-001: Framework Choice](file:///e:/salary-management-system/artifacts/adr/adr-001-framework.md)
@@ -158,13 +176,13 @@ Detailed records of engineering tradeoffs and framework choices:
 
 ---
 
-## 10. AI-Assisted Development
+## 11. AI-Assisted Development
 
 *   Prompts, output validations, and manual code corrections are documented in [artifacts/ai/ai_usage.md](file:///e:/salary-management-system/artifacts/ai/ai_usage.md).
 
 ---
 
-## 11. Testing
+## 12. Testing
 
 Run the test suite containing unit, integration, and mock search fallback assertions:
 ```bash
@@ -174,5 +192,5 @@ Tests are located in the [test/](file:///e:/salary-management-system/test/) fold
 
 ---
 
-## 12. License
+## 13. License
 Distributed under the MIT License. See `LICENSE` for details.
