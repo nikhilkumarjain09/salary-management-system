@@ -1,0 +1,242 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Home,
+  Users,
+  Sliders,
+  TrendingUp,
+  GitFork,
+  FileSpreadsheet,
+  History,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Logo } from "../logo";
+
+interface SidebarProps {
+  isOpenMobile: boolean;
+  onCloseMobile: () => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+}
+
+export function Sidebar({
+  isOpenMobile,
+  onCloseMobile,
+  isCollapsed,
+  setIsCollapsed,
+}: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Preference load and redirect
+  useEffect(() => {
+    try {
+      const lastPage = localStorage.getItem("lastPage");
+      const redirected = sessionStorage.getItem("redirectedToLastPage");
+      // Check if user landed on home root of app and wants to restore last opened page
+      if (
+        pathname === "/app" &&
+        lastPage &&
+        lastPage !== "/app" &&
+        !redirected
+      ) {
+        sessionStorage.setItem("redirectedToLastPage", "true");
+        router.push(lastPage);
+      }
+    } catch (e) {
+      console.warn("Failed to load lastPage preference:", e);
+    }
+  }, [pathname, router]);
+
+  // Track active page changes
+  useEffect(() => {
+    try {
+      if (pathname && pathname.startsWith("/app")) {
+        localStorage.setItem("lastPage", pathname);
+      }
+    } catch (e) {
+      console.warn("Failed to save lastPage preference:", e);
+    }
+  }, [pathname]);
+
+  const navGroups = [
+    {
+      title: "Main",
+      items: [
+        {
+          label: "Home Dashboard",
+          href: "/app",
+          icon: <Home size={18} />,
+        },
+      ],
+    },
+    {
+      title: "People & Ops",
+      items: [
+        {
+          label: "Employee Directory",
+          href: "/app/employees",
+          icon: <Users size={18} />,
+        },
+        {
+          label: "Org Chart",
+          href: "/app/org-chart",
+          icon: <GitFork size={18} />,
+        },
+      ],
+    },
+    {
+      title: "Compensation Strategy",
+      items: [
+        {
+          label: "Pay Bands",
+          href: "/app/compensation-bands",
+          icon: <Sliders size={18} />,
+        },
+        {
+          label: "Benchmarking",
+          href: "/app/benchmarking",
+          icon: <TrendingUp size={18} />,
+        },
+      ],
+    },
+    {
+      title: "Intelligence & Audit",
+      items: [
+        {
+          label: "Reports Builder",
+          href: "/app/reports",
+          icon: <FileSpreadsheet size={18} />,
+        },
+        {
+          label: "Audit Logs",
+          href: "/app/audit-log",
+          icon: <History size={18} />,
+        },
+      ],
+    },
+  ];
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col justify-between p-4">
+      <div className="space-y-6">
+        {/* Brand header */}
+        <div
+          className={`border-border/40 flex items-center justify-between border-b pb-2 ${
+            isCollapsed ? "justify-center" : ""
+          }`}
+        >
+          {!isCollapsed ? (
+            <Logo size={24} />
+          ) : (
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="h-6 w-6 rounded-md object-contain"
+            />
+          )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-colors md:block"
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronRight size={16} />
+            ) : (
+              <ChevronLeft size={16} />
+            )}
+          </button>
+        </div>
+
+        {/* Navigation list */}
+        <nav className="space-y-5">
+          {navGroups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1.5">
+              {!isCollapsed && (
+                <span className="text-text-muted px-3 text-[10px] font-bold tracking-wider uppercase">
+                  {group.title}
+                </span>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item, iIdx) => {
+                  const isActive =
+                    item.href === "/app"
+                      ? pathname === "/app"
+                      : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={iIdx}
+                      href={item.href}
+                      onClick={onCloseMobile}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
+                        isActive
+                          ? "bg-accent/10 text-accent font-bold"
+                          : "text-text-muted hover:text-text-primary hover:bg-surface-hover/60"
+                      } ${isCollapsed ? "justify-center" : ""}`}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <span
+                        className={isActive ? "text-accent" : "text-text-muted"}
+                      >
+                        {item.icon}
+                      </span>
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </div>
+
+      {!isCollapsed && (
+        <div className="text-text-muted border-border/40 border-t pt-4 text-center text-[10px] select-none">
+          CompensaIQ v1.0.0
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (Persistent left panel) */}
+      <aside
+        className={`bg-surface border-border fixed top-0 bottom-0 left-0 z-30 hidden border-r transition-all duration-200 md:block ${
+          isCollapsed ? "w-16" : "w-64"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer (Slide-over panel) */}
+      {isOpenMobile && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop overlay */}
+          <div
+            onClick={onCloseMobile}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+          />
+
+          {/* Drawer container */}
+          <aside className="bg-surface border-border animate-in slide-in-from-left relative z-50 flex h-full w-64 flex-col border-r duration-200">
+            <button
+              onClick={onCloseMobile}
+              className="text-text-muted hover:text-text-primary hover:bg-surface-hover absolute top-4 right-4 rounded p-1 transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={16} />
+            </button>
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}
