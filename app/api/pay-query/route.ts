@@ -26,7 +26,7 @@ async function queryAvgPay(
     );
     return raw.map((r) => ({
       name: r.name,
-      averagePayUSD: Number(r.avgPay.toFixed(0)),
+      averagePayUSD: Number((r.avgPay || 0).toFixed(0)),
     }));
   } else {
     const raw = await prisma.$queryRawUnsafe<any[]>(
@@ -46,7 +46,7 @@ async function queryAvgPay(
     );
     return raw.map((r) => ({
       name: r.name,
-      averagePayUSD: Number(r.avgPay.toFixed(0)),
+      averagePayUSD: Number((r.avgPay || 0).toFixed(0)),
     }));
   }
 }
@@ -187,10 +187,10 @@ async function queryPayGap(department?: string, level?: string) {
   return raw.map((r) => ({
     department: r.department,
     level: r.level,
-    minPayUSD: Number(r.minCountryPay.toFixed(0)),
-    maxPayUSD: Number(r.maxCountryPay.toFixed(0)),
-    spreadUSD: Number(r.absoluteSpread.toFixed(0)),
-    ratio: Number(r.ratioSpread.toFixed(2)),
+    minPayUSD: Number((r.minCountryPay || 0).toFixed(0)),
+    maxPayUSD: Number((r.maxCountryPay || 0).toFixed(0)),
+    spreadUSD: Number((r.absoluteSpread || 0).toFixed(0)),
+    ratio: Number((r.ratioSpread || 1.0).toFixed(2)),
     flagged: r.ratioSpread > 1.25,
   }));
 }
@@ -242,7 +242,7 @@ async function queryCompaOutliers(
     country: r.country,
     baseAmount: r.baseAmount,
     currency: r.currency,
-    compaRatio: Number((r.compaRatio * 100).toFixed(1)),
+    compaRatio: Number(((r.compaRatio || 0) * 100).toFixed(1)),
   }));
 }
 
