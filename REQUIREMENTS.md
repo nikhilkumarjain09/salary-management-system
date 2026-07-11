@@ -1,4 +1,4 @@
-# PaySight — Employee Salary Management Software
+# CompensaIQ — Employee Salary Management Software
 
 ### Requirements Document
 

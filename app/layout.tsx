@@ -3,7 +3,7 @@ import { CommandPaletteProvider } from "@/components/ui/CommandPalette";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CompensaIQ — Employee Salary Management Software",
+  title: "CompensaIQIQ — Employee Salary Management Software",
   description:
     "Manage pay data, compensation bands, ratios, and run natural-language organizational pay analysis.",
   icons: {

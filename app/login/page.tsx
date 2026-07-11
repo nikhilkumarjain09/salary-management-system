@@ -66,7 +66,7 @@ export default function LoginPage() {
         <CardHeader className="flex flex-col items-center space-y-2 pb-6">
           <Logo size={36} className="mb-4" />
           <CardTitle className="text-text-primary text-xl font-bold tracking-tight">
-            Sign in to CompensaIQ
+            Sign in to CompensaIQIQ
           </CardTitle>
           <CardDescription className="text-text-muted text-center text-sm">
             Enter your HR Manager credentials to access the salary portal

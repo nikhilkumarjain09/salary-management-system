@@ -158,7 +158,7 @@ export default function HomeDashboardPage() {
               icon={<TrendingUp size={18} />}
             />
           </div>
-
+CompensaIQ
           {/* Pay by Department & Country Charts */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Department Pay Chart */}
