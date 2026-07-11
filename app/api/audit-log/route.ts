@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   // Pagination
   const cursor = searchParams.get("cursor") || undefined;
-  const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 200);
 
   // Build where clause
   const where: Record<string, unknown> = {};

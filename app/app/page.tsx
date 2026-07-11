@@ -111,7 +111,7 @@ export default function HomeDashboardPage() {
   return (
     <div className="bg-background text-text-primary mx-auto flex w-full max-w-7xl flex-col space-y-8 p-6 md:p-12">
       <PageHeader
-        title="Home Dashboard"
+        title="Home"
         description="Welcome to CompensaIQ. Search using natural language, explore departments, audit pay bands, and track key metrics."
       />
 

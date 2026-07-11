@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowUp, ArrowDown, ArrowUpDown, MoreVertical } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  MoreVertical,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 import { Skeleton } from "./Skeleton";
 
 export interface ColumnDef<T> {
@@ -31,6 +38,68 @@ interface DataTableProps<T> {
   rowActions?: (item: T) => React.ReactNode;
   // Virtualization
   virtualized?: boolean;
+  // Page Size selector
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+}
+
+export function PageSizeSelector({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative inline-block text-left" ref={containerRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-surface border-border text-text-primary hover:bg-surface-hover/80 flex items-center gap-1 cursor-pointer rounded border px-2.5 py-1 text-xs font-semibold"
+        type="button"
+      >
+        <span>Show {value} per page</span>
+        <ChevronDown size={12} className="text-text-muted" />
+      </button>
+      {isOpen && (
+        <div className="bg-surface border-border absolute bottom-full mb-1.5 left-0 w-36 rounded border shadow-xl z-50 p-1 flex flex-col gap-0.5 animate-in fade-in slide-in-from-bottom-1 duration-100">
+          {[50, 100, 200].map((size) => (
+            <button
+              key={size}
+              onClick={() => {
+                onChange(size);
+                setIsOpen(false);
+              }}
+              className={`flex items-center justify-between px-2 py-1.5 text-xs rounded hover:bg-surface-hover cursor-pointer text-left ${
+                value === size
+                  ? "text-accent font-bold bg-accent/5"
+                  : "text-text-muted hover:text-text-primary"
+              }`}
+              type="button"
+            >
+              <span>{size} per page</span>
+              {value === size && <Check size={12} className="text-accent" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DataTable<T extends { id: string }>({
@@ -52,6 +121,8 @@ export function DataTable<T extends { id: string }>({
   onRowContextMenu,
   rowActions,
   virtualized = false,
+  pageSize = 50,
+  onPageSizeChange,
 }: DataTableProps<T>) {
   const handleHeaderClick = (key: string, sortable?: boolean) => {
     if (sortable && onSort) {
@@ -305,13 +376,18 @@ export function DataTable<T extends { id: string }>({
         </table>
       </div>
 
-      <div className="text-text-muted flex items-center justify-between px-2 text-sm">
-        <div>
-          {totalHits > 0 && (
-            <span>
-              Total records:{" "}
-              <strong className="text-text-primary">{totalHits}</strong>
-            </span>
+      <div className="text-text-muted flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2 text-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-xs font-semibold text-text-muted/80">
+            {totalHits > 0
+              ? `Showing ${currentPageIndex * pageSize + 1}-${Math.min(
+                  totalHits,
+                  currentPageIndex * pageSize + data.length,
+                )} of ${totalHits.toLocaleString()} records`
+              : `Showing ${data.length} record${data.length !== 1 ? "s" : ""}`}
+          </span>
+          {onPageSizeChange && (
+            <PageSizeSelector value={pageSize} onChange={onPageSizeChange} />
           )}
         </div>
         <div className="flex items-center gap-4">

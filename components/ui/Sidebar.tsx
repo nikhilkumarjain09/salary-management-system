@@ -70,7 +70,7 @@ export function Sidebar({
       title: "Main",
       items: [
         {
-          label: "Home Dashboard",
+          label: "Home",
           href: "/app",
           icon: <Home size={18} />,
         },

@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageSizeSelector } from "@/components/ui/DataTable";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -264,6 +265,7 @@ export default function AuditLogPage() {
   const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [limit, setLimit] = useState(50);
 
   // Expanded rows
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -312,7 +314,7 @@ export default function AuditLogPage() {
   useEffect(() => {
     setCursorHistory([null]);
     setCurrentPageIndex(0);
-  }, [entityType, action, dateFrom, dateTo]);
+  }, [entityType, action, dateFrom, dateTo, limit]);
 
   // Fetch metadata on mount
   useEffect(() => {
@@ -335,7 +337,7 @@ export default function AuditLogPage() {
     setIsLoading(true);
     try {
       const activeCursor = cursorHistory[currentPageIndex];
-      let url = `/api/audit-log?limit=25`;
+      let url = `/api/audit-log?limit=${limit}`;
 
       if (entityType) url += `&entityType=${encodeURIComponent(entityType)}`;
       if (action) url += `&action=${encodeURIComponent(action)}`;
@@ -355,7 +357,15 @@ export default function AuditLogPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [entityType, action, dateFrom, dateTo, currentPageIndex, cursorHistory]);
+  }, [
+    entityType,
+    action,
+    dateFrom,
+    dateTo,
+    currentPageIndex,
+    cursorHistory,
+    limit,
+  ]);
 
   useEffect(() => {
     fetchEntries();
@@ -595,14 +605,17 @@ export default function AuditLogPage() {
         </div>
 
         {/* Pagination */}
-        <div className="text-text-muted flex items-center justify-between px-2 text-sm">
-          <div>
-            {totalHits > 0 && (
-              <span>
-                Total entries:{" "}
-                <strong className="text-text-primary">{totalHits}</strong>
-              </span>
-            )}
+        <div className="text-text-muted flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2 text-sm">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xs font-semibold text-text-muted/80">
+              {totalHits > 0
+                ? `Showing ${currentPageIndex * limit + 1}-${Math.min(
+                    totalHits,
+                    currentPageIndex * limit + entries.length,
+                  )} of ${totalHits.toLocaleString()} records`
+                : `Showing ${entries.length} record${entries.length !== 1 ? "s" : ""}`}
+            </span>
+            <PageSizeSelector value={limit} onChange={setLimit} />
           </div>
           <div className="flex items-center gap-4">
             <button

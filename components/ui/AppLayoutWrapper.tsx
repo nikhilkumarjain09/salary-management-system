@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
-import { ThemeToggle } from "./ThemeToggle";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { Menu } from "lucide-react";
 
@@ -49,9 +48,8 @@ export function AppLayoutWrapper({ session, children }: AppLayoutWrapperProps) {
               </span>
             </div>
 
-            {/* Profile Dropdown + Theme Toggle */}
+            {/* Profile Dropdown */}
             <div className="flex items-center gap-4">
-              <ThemeToggle />
               {session.user && <ProfileDropdown user={session.user} />}
             </div>
           </div>

@@ -72,6 +72,7 @@ export default function EmployeeDirectoryPage() {
   // Pagination state (cursor history)
   const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [limit, setLimit] = useState(50);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   // Filter options loaded from database
@@ -192,7 +193,7 @@ export default function EmployeeDirectoryPage() {
     setIsLoading(true);
     try {
       const activeCursor = cursorHistory[currentPageIndex];
-      let url = `/api/employees?limit=50&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
+      let url = `/api/employees?limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&enrichCompa=true`;
 
       if (debouncedSearch)
         url += `&query=${encodeURIComponent(debouncedSearch)}`;
@@ -226,6 +227,7 @@ export default function EmployeeDirectoryPage() {
     sortOrder,
     currentPageIndex,
     cursorHistory,
+    limit,
   ]);
 
   useEffect(() => {
@@ -859,6 +861,8 @@ export default function EmployeeDirectoryPage() {
           onSelectionChange={setSelectedIds}
           onRowContextMenu={handleRowContextMenu}
           virtualized
+          pageSize={limit}
+          onPageSizeChange={setLimit}
           rowActions={(emp) => (
             <button
               onClick={(e) => handleKebabClick(e, emp)}

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const headcount = Number(headcountRaw[0]?.count || 0);
 
     const totalCostRaw = await prisma.$queryRaw<{ totalCost: number | null }[]>`
-      SELECT SUM(s."baseAmountUSD" + s."bonusAmountUSD") as totalCost
+      SELECT SUM(s."baseAmountUSD" + s."bonusAmountUSD") as "totalCost"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     // Average pay / Midpoint pay of bands. To simplify in database:
     // Join latest salary with matching compensation band midAmount
     const compaRatioRaw = await prisma.$queryRaw<{ avgRatio: number }[]>`
-      SELECT AVG(s."baseAmount" / b."midAmount") as avgRatio
+      SELECT AVG(s."baseAmount" / b."midAmount") as "avgRatio"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     const deptAverageRaw = await prisma.$queryRaw<
       { department: string; avgPay: number }[]
     >`
-      SELECT e."department", AVG(s."baseAmountUSD") as avgPay
+      SELECT e."department", AVG(s."baseAmountUSD") as "avgPay"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
         INNER JOIN "Employee" e ON s."employeeId" = e.id
         WHERE e."isActive" = ${true}
       )
-      SELECT department, AVG(baseAmountUSD) as medianPay
+      SELECT department, AVG(baseAmountUSD) as "medianPay"
       FROM OrderedSalaries
       WHERE row_num IN ( (dept_count + 1) / 2, (dept_count + 2) / 2 )
       GROUP BY department
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
     const countryAverageRaw = await prisma.$queryRaw<
       { country: string; avgPay: number }[]
     >`
-      SELECT e."country", AVG(s."baseAmountUSD") as avgPay
+      SELECT e."country", AVG(s."baseAmountUSD") as "avgPay"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
         INNER JOIN "Employee" e ON s."employeeId" = e.id
         WHERE e."isActive" = ${true}
       )
-      SELECT country, AVG(baseAmountUSD) as medianPay
+      SELECT country, AVG(baseAmountUSD) as "medianPay"
       FROM OrderedSalaries
       WHERE row_num IN ( (country_count + 1) / 2, (country_count + 2) / 2 )
       GROUP BY country
