@@ -124,31 +124,28 @@ export function Sidebar({
   ];
 
   const sidebarContent = (
-    <div className="flex h-full flex-col justify-between p-4">
+    <div className={`flex h-full flex-col justify-between ${isCollapsed ? "p-2" : "p-4"} transition-all duration-200`}>
       <div className="space-y-6">
         {/* Brand header */}
-        <div
-          className={`border-border/40 flex items-center justify-between border-b pb-2.5 ${
-            isCollapsed ? "justify-center" : ""
-          }`}
-        >
-          {!isCollapsed ? (
-            <>
-              <Logo size={24} />
-              <button
-                onClick={() => setIsCollapsed(true)}
-                className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-colors md:block cursor-pointer"
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            </>
-          ) : (
+        <div className="border-border/40 flex items-center justify-between border-b pb-2.5 min-h-[38px] overflow-hidden">
+          <div className="flex items-center gap-2 overflow-hidden shrink-0">
             <img
               src="/logo.png"
-              alt="Logo"
-              className="h-6 w-6 rounded-md object-contain"
+              alt="CompensaIQ Logo"
+              className="h-6 w-6 rounded-md object-contain shrink-0 select-none"
             />
+            <span className={`text-sm font-bold tracking-tight text-text-primary transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"}`}>
+              CompensaIQ
+            </span>
+          </div>
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="text-text-muted hover:text-text-primary hover:bg-surface-hover hidden rounded p-1 transition-all duration-200 md:block cursor-pointer shrink-0"
+              title="Collapse Sidebar"
+            >
+              <ChevronLeft size={16} />
+            </button>
           )}
         </div>
 
@@ -170,14 +167,14 @@ export function Sidebar({
                       key={iIdx}
                       href={item.href}
                       onClick={onCloseMobile}
-                      className={`relative group flex items-center rounded-lg px-3 py-2.5 text-xs font-semibold transition-all ${
+                      className={`relative group flex items-center rounded-lg ${isCollapsed ? "px-2" : "px-3"} py-2.5 text-xs font-semibold transition-all ${
                         isActive
                           ? "bg-accent/10 text-accent font-bold"
                           : "text-text-muted hover:text-text-primary hover:bg-surface-hover/60"
                       } ${isCollapsed ? "justify-center gap-0" : "gap-3"}`}
                     >
                       <span
-                        className={`transition-colors duration-200 shrink-0 ${isActive ? "text-accent" : "text-text-muted"}`}
+                        className={`transition-colors duration-200 shrink-0 w-5 h-5 flex items-center justify-center ${isActive ? "text-accent" : "text-text-muted"}`}
                       >
                         {item.icon}
                       </span>

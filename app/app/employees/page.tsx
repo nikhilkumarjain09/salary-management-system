@@ -75,7 +75,7 @@ export default function EmployeeDirectoryPage() {
   const [level, setLevel] = useState("");
   const [isActive, setIsActive] = useState("true");
   const [outsideBand, setOutsideBand] = useState("all");
-  const [exactMatch, setExactMatch] = useState(false);
+  const [searchMode, setSearchMode] = useState("startsWith");
 
   // Sorting state
   const [sortBy, setSortBy] = useState("name");
@@ -135,6 +135,31 @@ export default function EmployeeDirectoryPage() {
     onConfirm: () => {},
     isLoading: false,
   });
+
+  const [errorPopup, setErrorPopup] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "error" | "warning" | "success" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "error",
+  });
+
+  const showError = (
+    title: string,
+    message: string,
+    type: "error" | "warning" | "success" | "info" = "error"
+  ) => {
+    setErrorPopup({
+      isOpen: true,
+      title,
+      message,
+      type,
+    });
+  };
 
   // Bulk change modals
   const [bulkDeptOpen, setBulkDeptOpen] = useState(false);
@@ -218,9 +243,7 @@ export default function EmployeeDirectoryPage() {
 
       if (debouncedSearch) {
         url += `&query=${encodeURIComponent(debouncedSearch)}`;
-        if (exactMatch) {
-          url += `&exactMatch=true`;
-        }
+        url += `&searchMode=${searchMode}`;
       }
       if (department) url += `&department=${encodeURIComponent(department)}`;
       if (country) url += `&country=${encodeURIComponent(country)}`;
@@ -248,7 +271,7 @@ export default function EmployeeDirectoryPage() {
     level,
     isActive,
     outsideBand,
-    exactMatch,
+    searchMode,
     sortBy,
     sortOrder,
     currentPageIndex,
@@ -284,7 +307,7 @@ export default function EmployeeDirectoryPage() {
 
   const handleClearFilters = () => {
     setSearch("");
-    setExactMatch(false);
+    setSearchMode("startsWith");
     setDepartment("");
     setCountry("");
     setLevel("");
@@ -413,12 +436,30 @@ export default function EmployeeDirectoryPage() {
             refreshList();
           } else {
             const errData = await res.json();
-            alert(errData.error || "Failed to delete employee record.");
+            if (res.status === 404) {
+              setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+              setTotalHits((prev) => Math.max(0, prev - 1));
+              showError(
+                "Record Already Deleted",
+                `The employee record for ${emp.name} (${emp.employeeCode}) was not found in the database. It has been cleared from your local directory view.`,
+                "warning"
+              );
+            } else {
+              showError(
+                "Delete Failed",
+                errData.error || "Failed to delete employee record.",
+                "error"
+              );
+            }
             setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
           }
         } catch (err) {
           console.error("Delete error:", err);
-          alert("An unexpected network error occurred.");
+          showError(
+            "Network Error",
+            "An unexpected network error occurred while attempting to delete the record.",
+            "error"
+          );
           setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
@@ -1019,144 +1060,152 @@ export default function EmployeeDirectoryPage() {
       <main className="space-y-6">
         {/* Search & Filter Panel */}
         <Card className="border-border bg-surface p-4">
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Search Name / ID
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Type name or code..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
-                />
-                <Search
-                  size={16}
-                  className="text-text-muted/60 absolute top-2.5 left-3"
-                />
-              </div>
-              <div className="flex items-center space-x-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="exactMatch"
-                  checked={exactMatch}
-                  onChange={(e) => setExactMatch(e.target.checked)}
-                  className="border-border bg-background text-accent focus:ring-accent h-3.5 w-3.5 rounded cursor-pointer"
-                />
-                <label
-                  htmlFor="exactMatch"
-                  className="text-text-muted hover:text-text-primary text-xs font-medium cursor-pointer transition-colors"
-                >
-                  Exact match search
+          <div className="space-y-4">
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Search Name / ID
                 </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Type name or code..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border py-2 pr-3 pl-9 text-sm transition-all focus:ring-2 focus:outline-none"
+                  />
+                  <Search
+                    size={16}
+                    className="text-text-muted/60 absolute top-2.5 left-3"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Search Mode
+                </label>
+                <CustomSelect
+                  value={searchMode}
+                  onChange={setSearchMode}
+                  options={[
+                    { value: "startsWith", label: "Starts With", icon: <Sliders size={14} className="text-text-muted/60" /> },
+                    { value: "exact", label: "Exact Match", icon: <Sliders size={14} className="text-accent" /> },
+                    { value: "contains", label: "Contains", icon: <Sliders size={14} className="text-text-muted/80" /> },
+                  ]}
+                  placeholder="Starts With"
+                  icon={<Sliders size={14} className="text-text-muted/60" />}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Department
+                </label>
+                <CustomSelect
+                  value={department}
+                  onChange={setDepartment}
+                  options={[
+                    { value: "", label: "All Departments", icon: <Building2 size={14} className="text-text-muted/60" /> },
+                    ...metadata.departments.map((dept) => ({
+                      value: dept,
+                      label: dept,
+                      icon: <Building2 size={14} className="text-text-muted/80" />,
+                    })),
+                  ]}
+                  placeholder="All Departments"
+                  icon={<Building2 size={14} className="text-text-muted/60" />}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Country
+                </label>
+                <CustomSelect
+                  value={country}
+                  onChange={setCountry}
+                  options={[
+                    { value: "", label: "All Countries", icon: <Globe size={14} className="text-text-muted/60" /> },
+                    ...metadata.countries.map((c) => ({
+                      value: c,
+                      label: c === "US" ? "United States" : c === "IN" ? "India" : c === "UK" ? "United Kingdom" : c === "DE" ? "Germany" : c === "SG" ? "Singapore" : c === "BR" ? "Brazil" : c,
+                      icon: <Globe size={14} className="text-text-muted/80" />,
+                    })),
+                  ]}
+                  placeholder="All Countries"
+                  icon={<Globe size={14} className="text-text-muted/60" />}
+                />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Department
-              </label>
-              <CustomSelect
-                value={department}
-                onChange={setDepartment}
-                options={[
-                  { value: "", label: "All Departments", icon: <Building2 size={14} className="text-text-muted/60" /> },
-                  ...metadata.departments.map((dept) => ({
-                    value: dept,
-                    label: dept,
-                    icon: <Building2 size={14} className="text-text-muted/80" />,
-                  })),
-                ]}
-                placeholder="All Departments"
-                icon={<Building2 size={14} className="text-text-muted/60" />}
-              />
-            </div>
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end pt-4 border-t border-border/10">
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Level
+                </label>
+                <CustomSelect
+                  value={level}
+                  onChange={setLevel}
+                  options={[
+                    { value: "", label: "All Levels", icon: <Layers size={14} className="text-text-muted/60" /> },
+                    ...metadata.levels.map((l) => ({
+                      value: l,
+                      label: l,
+                      icon: <Layers size={14} className="text-text-muted/80" />,
+                    })),
+                  ]}
+                  placeholder="All Levels"
+                  icon={<Layers size={14} className="text-text-muted/60" />}
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Country
-              </label>
-              <CustomSelect
-                value={country}
-                onChange={setCountry}
-                options={[
-                  { value: "", label: "All Countries", icon: <Globe size={14} className="text-text-muted/60" /> },
-                  ...metadata.countries.map((c) => ({
-                    value: c,
-                    label: c === "US" ? "United States" : c === "IN" ? "India" : c === "UK" ? "United Kingdom" : c === "DE" ? "Germany" : c === "SG" ? "Singapore" : c === "BR" ? "Brazil" : c,
-                    icon: <Globe size={14} className="text-text-muted/80" />,
-                  })),
-                ]}
-                placeholder="All Countries"
-                icon={<Globe size={14} className="text-text-muted/60" />}
-              />
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Status
+                </label>
+                <CustomSelect
+                  value={isActive}
+                  onChange={setIsActive}
+                  options={[
+                    { value: "all", label: "All Statuses", icon: <Activity size={14} className="text-text-muted/60" /> },
+                    { value: "true", label: "Active Only", icon: <Activity size={14} className="text-emerald-500" /> },
+                    { value: "false", label: "Inactive Only", icon: <Activity size={14} className="text-rose-500" /> },
+                  ]}
+                  placeholder="All Statuses"
+                  icon={<Activity size={14} className="text-text-muted/60" />}
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Level
-              </label>
-              <CustomSelect
-                value={level}
-                onChange={setLevel}
-                options={[
-                  { value: "", label: "All Levels", icon: <Layers size={14} className="text-text-muted/60" /> },
-                  ...metadata.levels.map((l) => ({
-                    value: l,
-                    label: l,
-                    icon: <Layers size={14} className="text-text-muted/80" />,
-                  })),
-                ]}
-                placeholder="All Levels"
-                icon={<Layers size={14} className="text-text-muted/60" />}
-              />
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                  Band Status
+                </label>
+                <CustomSelect
+                  value={outsideBand}
+                  onChange={setOutsideBand}
+                  options={[
+                    { value: "all", label: "All Bands", icon: <Sliders size={14} className="text-text-muted/60" /> },
+                    { value: "true", label: "Outside Band", icon: <Sliders size={14} className="text-rose-500" /> },
+                    { value: "false", label: "Within Band", icon: <Sliders size={14} className="text-emerald-500" /> },
+                  ]}
+                  placeholder="All Bands"
+                  icon={<Sliders size={14} className="text-text-muted/60" />}
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Status
-              </label>
-              <CustomSelect
-                value={isActive}
-                onChange={setIsActive}
-                options={[
-                  { value: "all", label: "All Statuses", icon: <Activity size={14} className="text-text-muted/60" /> },
-                  { value: "true", label: "Active Only", icon: <Activity size={14} className="text-emerald-500" /> },
-                  { value: "false", label: "Inactive Only", icon: <Activity size={14} className="text-rose-500" /> },
-                ]}
-                placeholder="All Statuses"
-                icon={<Activity size={14} className="text-text-muted/60" />}
-              />
+              <Button
+                variant="outline"
+                className="hover:bg-surface-hover hover:text-text-primary border-border w-full shrink-0 border px-2.5 py-2 h-[38px] flex items-center justify-center"
+                onClick={handleClearFilters}
+                title="Clear Filters"
+              >
+                <FilterX size={16} className="mr-1.5" />
+                Clear
+              </Button>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
-                Band Status
-              </label>
-              <CustomSelect
-                value={outsideBand}
-                onChange={setOutsideBand}
-                options={[
-                  { value: "all", label: "All Bands", icon: <Sliders size={14} className="text-text-muted/60" /> },
-                  { value: "true", label: "Outside Band", icon: <Sliders size={14} className="text-rose-500" /> },
-                  { value: "false", label: "Within Band", icon: <Sliders size={14} className="text-emerald-500" /> },
-                ]}
-                placeholder="All Bands"
-                icon={<Sliders size={14} className="text-text-muted/60" />}
-              />
-            </div>
-
-            <Button
-              variant="outline"
-              className="hover:bg-surface-hover hover:text-text-primary border-border w-full shrink-0 border px-2.5 py-2"
-              onClick={handleClearFilters}
-              title="Clear Filters"
-            >
-              <FilterX size={16} className="mr-1.5" />
-              Clear
-            </Button>
           </div>
         </Card>
 
@@ -1937,6 +1986,50 @@ export default function EmployeeDirectoryPage() {
               </Button>
             </div>
           </form>
+        </div>
+      </Modal>
+
+      {/* Custom Alert/Message Dialog */}
+      <Modal
+        isOpen={errorPopup.isOpen}
+        onClose={() => setErrorPopup((prev) => ({ ...prev, isOpen: false }))}
+        title={errorPopup.title}
+      >
+        <div className="flex items-start space-x-3.5 py-2">
+          {errorPopup.type === "error" && (
+            <div className="bg-rose-500/10 text-rose-500 rounded-full p-2.5 shrink-0">
+              <AlertTriangle size={24} />
+            </div>
+          )}
+          {errorPopup.type === "warning" && (
+            <div className="bg-amber-500/10 text-amber-500 rounded-full p-2.5 shrink-0">
+              <AlertTriangle size={24} />
+            </div>
+          )}
+          {errorPopup.type === "success" && (
+            <div className="bg-emerald-500/10 text-emerald-500 rounded-full p-2.5 shrink-0">
+              <CheckCircle size={24} />
+            </div>
+          )}
+          {errorPopup.type === "info" && (
+            <div className="bg-accent/10 text-accent rounded-full p-2.5 shrink-0">
+              <CheckCircle size={24} />
+            </div>
+          )}
+          <div className="space-y-1">
+            <p className="text-text-muted text-sm leading-relaxed">
+              {errorPopup.message}
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end">
+          <Button
+            variant="secondary"
+            onClick={() => setErrorPopup((prev) => ({ ...prev, isOpen: false }))}
+            className="px-4"
+          >
+            Acknowledge
+          </Button>
         </div>
       </Modal>
     </div>

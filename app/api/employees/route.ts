@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
   const startDateMax = searchParams.get("startDateMax") || undefined;
   const outsideBand = searchParams.get("outsideBand") || undefined;
   const exactMatch = searchParams.get("exactMatch") === "true";
+  const searchMode = searchParams.get("searchMode") || undefined;
 
   const cursor = searchParams.get("cursor") || undefined;
   const limit = parseInt(searchParams.get("limit") || "50", 10);
@@ -134,6 +135,7 @@ export async function GET(req: NextRequest) {
         startDateMax,
         ids: matchIds,
         exactMatch,
+        searchMode,
       },
       cursor,
       limit,

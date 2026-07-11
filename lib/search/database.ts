@@ -24,10 +24,17 @@ export class DatabaseSearchService implements ISearchService {
     // 1. Prefix or exact search on name or employeeCode using B-Tree indexes
     if (query) {
       const sanitized = query.trim();
-      if (filters?.exactMatch) {
+      const searchMode = filters?.searchMode || (filters?.exactMatch ? "exact" : "startsWith");
+      
+      if (searchMode === "exact") {
         where.OR = [
           { name: { equals: sanitized, mode: "insensitive" } },
           { employeeCode: { equals: sanitized, mode: "insensitive" } },
+        ];
+      } else if (searchMode === "contains") {
+        where.OR = [
+          { name: { contains: sanitized, mode: "insensitive" } },
+          { employeeCode: { contains: sanitized, mode: "insensitive" } },
         ];
       } else {
         where.OR = [
