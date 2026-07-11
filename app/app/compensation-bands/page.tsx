@@ -349,6 +349,7 @@ export default function CompensationBandsPage() {
           sortOrder={sortOrder}
           onSort={handleSort}
           totalHits={bands.length}
+          virtualized
         />
       </main>
 

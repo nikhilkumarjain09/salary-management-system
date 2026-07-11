@@ -3,13 +3,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Colors */
-  --background: #08080a;
-  --surface: #121216;
-  --surface-hover: #1c1c24;
-  --border: #222229;
-  --text-primary: #f4f4f5;
-  --text-muted: #9fa0a6;
+  /* --- LIGHT THEME (Default) --- */
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
   --accent: #6366f1;
   --accent-hover: #4f46e5;
 
@@ -23,6 +23,20 @@
   /* Fonts */
   --font-sans:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.dark {
+  /* --- DARK THEME --- */
+  --background: #08080a;
+  --surface: #121216;
+  --surface-hover: #1c1c24;
+  --border: #222229;
+  --text-primary: #f4f4f5;
+  --text-muted: #9fa0a6;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --destructive: #ef4444;
+  --destructive-hover: #dc2626;
 }
 
 @theme {

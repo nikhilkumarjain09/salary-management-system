@@ -305,6 +305,7 @@ export default function BenchmarkingPage() {
             sortOrder={sortOrder}
             onSort={handleSort}
             totalHits={comparisons.length}
+            virtualized
           />
         </div>
 

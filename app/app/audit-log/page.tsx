@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FileText,
   FilterX,
@@ -268,6 +268,37 @@ export default function AuditLogPage() {
   // Expanded rows
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // Virtualization state & scroll listeners
+  const [scrollTop, setScrollTop] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const rowHeight = 56;
+  const viewportHeight = 560; // 10 rows
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  };
+
+  // Reset scroll to 0 if data changes or filters apply
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+      setScrollTop(0);
+    }
+  }, [entries]);
+
+  const totalItems = entries.length;
+  const startIndex = Math.floor(scrollTop / rowHeight);
+  const endIndex = Math.ceil((scrollTop + viewportHeight) / rowHeight);
+  const buffer = 10;
+  const bufferedStartIndex = Math.max(0, startIndex - buffer);
+  const bufferedEndIndex = Math.min(totalItems, endIndex + buffer);
+
+  const visibleEntries = entries.slice(bufferedStartIndex, bufferedEndIndex);
+
+  const topSpacerHeight = bufferedStartIndex * rowHeight;
+  const bottomSpacerHeight = (totalItems - bufferedEndIndex) * rowHeight;
+
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -440,7 +471,11 @@ export default function AuditLogPage() {
         </Card>
 
         {/* Audit Table */}
-        <div className="border-border bg-surface w-full overflow-x-auto rounded-lg border">
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="border-border bg-surface w-full overflow-x-auto overflow-y-auto rounded-lg border max-h-[616px]"
+        >
           <table className="text-text-primary w-full min-w-[700px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-border bg-background/50 border-b">
@@ -490,57 +525,70 @@ export default function AuditLogPage() {
                   </td>
                 </tr>
               ) : (
-                entries.map((entry) => {
-                  const isExpanded = expandedIds.has(entry.id);
-                  return (
-                    <React.Fragment key={entry.id}>
-                      <tr
-                        onClick={() => toggleExpanded(entry.id)}
-                        className="border-border/40 hover:bg-surface-hover/50 cursor-pointer border-b transition-colors"
-                      >
-                        <td className="px-3 py-4">
-                          {isExpanded ? (
-                            <ChevronDown
-                              size={14}
-                              className="text-text-muted"
-                            />
-                          ) : (
-                            <ChevronRight
-                              size={14}
-                              className="text-text-muted"
-                            />
-                          )}
-                        </td>
-                        <td className="text-text-muted px-6 py-4 text-xs">
-                          {formatDate(entry.createdAt)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <ActionBadge action={entry.action} />
-                        </td>
-                        <td className="text-text-primary px-6 py-4 text-sm font-medium">
-                          {humanDescription(entry)}
-                        </td>
-                        <td className="text-text-muted px-6 py-4 text-xs">
-                          {entry.actorLabel}
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="border-border/40 border-b">
-                          <td />
-                          <td
-                            colSpan={4}
-                            className="bg-background/30 px-6 py-4"
-                          >
-                            <DiffViewer
-                              before={entry.beforeValue}
-                              after={entry.afterValue}
-                            />
+                <>
+                  {topSpacerHeight > 0 && (
+                    <tr style={{ height: `${topSpacerHeight}px` }}>
+                      <td colSpan={5} />
+                    </tr>
+                  )}
+                  {visibleEntries.map((entry) => {
+                    const isExpanded = expandedIds.has(entry.id);
+                    return (
+                      <React.Fragment key={entry.id}>
+                        <tr
+                          onClick={() => toggleExpanded(entry.id)}
+                          className="border-border/40 hover:bg-surface-hover/50 cursor-pointer border-b transition-colors"
+                          style={{ height: `${rowHeight}px` }}
+                        >
+                          <td className="px-3 py-4">
+                            {isExpanded ? (
+                              <ChevronDown
+                                size={14}
+                                className="text-text-muted"
+                              />
+                            ) : (
+                              <ChevronRight
+                                size={14}
+                                className="text-text-muted"
+                              />
+                            )}
+                          </td>
+                          <td className="text-text-muted px-6 py-4 text-xs">
+                            {formatDate(entry.createdAt)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <ActionBadge action={entry.action} />
+                          </td>
+                          <td className="text-text-primary px-6 py-4 text-sm font-medium">
+                            {humanDescription(entry)}
+                          </td>
+                          <td className="text-text-muted px-6 py-4 text-xs">
+                            {entry.actorLabel}
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
+                        {isExpanded && (
+                          <tr className="border-border/40 border-b">
+                            <td />
+                            <td
+                              colSpan={4}
+                              className="bg-background/30 px-6 py-4"
+                            >
+                              <DiffViewer
+                                before={entry.beforeValue}
+                                after={entry.afterValue}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                  {bottomSpacerHeight > 0 && (
+                    <tr style={{ height: `${bottomSpacerHeight}px` }}>
+                      <td colSpan={5} />
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>
