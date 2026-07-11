@@ -243,6 +243,7 @@ export class ElasticsearchSearchService implements ISearchService {
       await this.client.index({
         index: "employees",
         id: employee.id,
+        refresh: true,
         document: {
           id: employee.id,
           employeeCode: employee.employeeCode,
@@ -268,6 +269,7 @@ export class ElasticsearchSearchService implements ISearchService {
       await this.client.delete({
         index: "employees",
         id: employeeId,
+        refresh: true,
       });
     } catch (error) {
       console.error(

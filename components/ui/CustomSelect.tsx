@@ -26,6 +26,7 @@ export function CustomSelect({
   icon,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openDirection, setOpenDirection] = useState<"up" | "down">("down");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,13 +42,30 @@ export function CustomSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggle = () => {
+    if (!isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // If space below is too small (e.g. less than 240px) and there is more space above, open up
+      if (spaceBelow < 240 && spaceAbove > spaceBelow) {
+        setOpenDirection("up");
+      } else {
+        setOpenDirection("down");
+      }
+    }
+    setIsOpen(!isOpen);
+  };
+
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (
     <div className="relative w-full" ref={containerRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="bg-background border-border text-text-primary hover:bg-surface-hover/50 flex w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:ring-accent/50 focus:border-accent focus:outline-none"
       >
         <div className="flex items-center gap-2 truncate">
@@ -67,11 +85,13 @@ export function CustomSelect({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.95 }}
+            initial={{ opacity: 0, y: openDirection === "up" ? 4 : -4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.95 }}
+            exit={{ opacity: 0, y: openDirection === "up" ? 4 : -4, scale: 0.95 }}
             transition={{ duration: 0.08 }}
-            className="bg-surface border-border absolute left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-xl no-scrollbar animate-in"
+            className={`bg-surface border-border absolute left-0 right-0 z-50 max-h-60 overflow-y-auto rounded-lg border p-1 shadow-xl no-scrollbar animate-in ${
+              openDirection === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5"
+            }`}
           >
             {options.map((option) => {
               const isSelected = option.value === value;

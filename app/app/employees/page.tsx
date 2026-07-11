@@ -22,6 +22,9 @@ import {
   Activity,
   Sliders,
   Trash2,
+  Upload,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -98,6 +101,14 @@ export default function EmployeeDirectoryPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedViewEmployee, setSelectedViewEmployee] = useState<Employee | null>(null);
+  
+  // Bulk Upload States
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkPreview, setBulkPreview] = useState<any[]>([]);
+  const [bulkErrorsCount, setBulkErrorsCount] = useState(0);
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [bulkImportError, setBulkImportError] = useState<string | null>(null);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -533,6 +544,219 @@ export default function EmployeeDirectoryPage() {
   };
 
   // ----------------------------------------------------------------
+  // Bulk CSV Upload & Import Handlers
+  // ----------------------------------------------------------------
+
+  const downloadSampleTemplate = () => {
+    const csvContent =
+      "name,employeeCode,department,level,country,startDate,initialSalary,currency,managerId\n" +
+      "Alice Smith,EMP-09001,Engineering,L3,US,2026-01-15,95000,USD,\n" +
+      "Bob Jones,EMP-09002,Marketing,L2,UK,2026-02-01,45000,GBP,\n" +
+      "Charlie Gupta,EMP-09003,Sales,L4,IN,2026-02-10,1800000,INR,";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "employees_bulk_template.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCSVText = (text: string) => {
+    const lines = [];
+    let row = [""];
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          row[row.length - 1] += '"';
+          i++; // Skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === "," && !inQuotes) {
+        row.push("");
+      } else if ((char === "\r" || char === "\n") && !inQuotes) {
+        if (char === "\r" && nextChar === "\n") {
+          i++; // Skip \n
+        }
+        lines.push(row);
+        row = [""];
+      } else {
+        row[row.length - 1] += char;
+      }
+    }
+    if (row.length > 1 || row[0] !== "") {
+      lines.push(row);
+    }
+    return lines;
+  };
+
+  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBulkFile(file);
+    setBulkImportError(null);
+    const reader = new FileReader();
+
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const rows = parseCSVText(text);
+
+      if (rows.length < 2) {
+        setBulkImportError("The CSV file is empty or missing data rows.");
+        setBulkPreview([]);
+        setBulkErrorsCount(0);
+        return;
+      }
+
+      const headers = rows[0].map((h) => h.trim().toLowerCase());
+      const expectedHeaders = [
+        "name",
+        "employeecode",
+        "department",
+        "level",
+        "country",
+        "startdate",
+        "initialsalary",
+        "currency",
+        "managerid",
+      ];
+
+      const missingHeaders = expectedHeaders.filter((h) => !headers.includes(h));
+      if (missingHeaders.length > 0) {
+        setBulkImportError(
+          `Invalid template. Missing headers: ${missingHeaders.join(", ")}`
+        );
+        setBulkPreview([]);
+        setBulkErrorsCount(0);
+        return;
+      }
+
+      const dataRows = rows.slice(1).filter((r) => r.length > 1 && r.some((c) => c.trim() !== ""));
+      const previewData: any[] = [];
+      let errorsCount = 0;
+
+      dataRows.forEach((row, index) => {
+        const item: Record<string, any> = {};
+        headers.forEach((header, colIndex) => {
+          item[header] = row[colIndex]?.trim() || "";
+        });
+
+        const formatted: Record<string, any> = {
+          name: item.name,
+          employeeCode: item.employeecode,
+          department: item.department,
+          level: item.level,
+          country: item.country,
+          startDate: item.startdate,
+          initialSalary: item.initialsalary ? parseFloat(item.initialsalary) : NaN,
+          currency: item.currency,
+          managerId: item.managerid || null,
+        };
+
+        const validationErrors: string[] = [];
+        if (!formatted.name) validationErrors.push("Name is required");
+        if (!formatted.employeeCode || formatted.employeeCode.length < 3) {
+          validationErrors.push("Employee ID must be >= 3 characters");
+        }
+        if (!formatted.department) validationErrors.push("Department is required");
+        
+        const validLevels = ["L1", "L2", "L3", "L4", "L5"];
+        if (!validLevels.includes(formatted.level)) {
+          validationErrors.push(`Level must be L1-L5 (got "${formatted.level}")`);
+        }
+
+        const validCountries = COUNTRIES.map((c) => c.code);
+        if (!validCountries.includes(formatted.country)) {
+          validationErrors.push(`Invalid Country: "${formatted.country}"`);
+        }
+
+        const validCurrencies = Array.from(new Set(COUNTRIES.map((c) => c.currency)));
+        if (!validCurrencies.includes(formatted.currency)) {
+          validationErrors.push(`Invalid Currency: "${formatted.currency}"`);
+        }
+
+        if (isNaN(formatted.initialSalary) || formatted.initialSalary < 0) {
+          validationErrors.push("Salary must be >= 0");
+        }
+
+        if (formatted.startDate) {
+          const d = new Date(formatted.startDate);
+          if (isNaN(d.getTime())) {
+            validationErrors.push("Invalid date format (use YYYY-MM-DD)");
+          }
+        } else {
+          validationErrors.push("Start Date is required");
+        }
+
+        if (formatted.managerId) {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(formatted.managerId)) {
+            validationErrors.push("Manager ID must be a valid UUID");
+          }
+        }
+
+        if (validationErrors.length > 0) {
+          errorsCount++;
+        }
+
+        previewData.push({
+          rowNumber: index + 2,
+          data: formatted,
+          errors: validationErrors,
+        });
+      });
+
+      setBulkPreview(previewData);
+      setBulkErrorsCount(errorsCount);
+    };
+
+    reader.readAsText(file);
+  };
+
+  const handleBulkUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bulkErrorsCount > 0) return;
+    if (bulkPreview.length === 0) return;
+
+    setIsBulkImporting(true);
+    setBulkImportError(null);
+
+    const payload = bulkPreview.map((p) => p.data);
+
+    try {
+      const res = await fetch("/api/employees/bulk-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json();
+
+      if (res.ok) {
+        setIsBulkUploadOpen(false);
+        setBulkFile(null);
+        setBulkPreview([]);
+        setBulkErrorsCount(0);
+        refreshList();
+      } else {
+        setBulkImportError(resData.error || "Failed to import employees.");
+      }
+    } catch (err) {
+      console.error(err);
+      setBulkImportError("An unexpected network error occurred.");
+    } finally {
+      setIsBulkImporting(false);
+    }
+  };
+
+  // ----------------------------------------------------------------
   // Create / Edit form handlers
   // ----------------------------------------------------------------
 
@@ -756,14 +980,26 @@ export default function EmployeeDirectoryPage() {
         title="Employee Directory"
         description="Filter, search, sort, and manage details of ACME's complete payroll workforce."
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <Plus size={16} className="mr-1.5" />
-            Add Employee
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsBulkUploadOpen(true)}
+              className="flex items-center gap-1.5"
+            >
+              <Upload size={16} />
+              Bulk Upload
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-1.5"
+            >
+              <Plus size={16} />
+              Add Employee
+            </Button>
+          </div>
         }
       />
 
@@ -1300,38 +1536,34 @@ export default function EmployeeDirectoryPage() {
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Level
               </label>
-              <select
+              <CustomSelect
                 value={createForm.level}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, level: e.target.value })
-                }
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                {LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCreateForm({ ...createForm, level: val })}
+                options={LEVELS.map((l) => ({ value: l, label: l }))}
+                placeholder="Select level"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Country
               </label>
-              <select
+              <CustomSelect
                 value={createForm.country}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, country: e.target.value })
-                }
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => {
+                  const matchingCountry = COUNTRIES.find((c) => c.code === val);
+                  setCreateForm({
+                    ...createForm,
+                    country: val,
+                    currency: matchingCountry?.currency || "USD",
+                  });
+                }}
+                options={COUNTRIES.map((c) => ({
+                  value: c.code,
+                  label: `${c.flag} ${c.name}`,
+                }))}
+                placeholder="Select country"
+              />
             </div>
           </div>
 
@@ -1367,19 +1599,15 @@ export default function EmployeeDirectoryPage() {
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Currency
               </label>
-              <select
+              <CustomSelect
                 value={createForm.currency}
-                onChange={(e) =>
-                  setCreateForm({ ...createForm, currency: e.target.value })
-                }
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.currency} value={c.currency}>
-                    {c.currency}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCreateForm({ ...createForm, currency: val })}
+                options={Array.from(new Set(COUNTRIES.map((c) => c.currency))).map((curr) => ({
+                  value: curr,
+                  label: curr,
+                }))}
+                placeholder="Currency"
+              />
             </div>
           </div>
 
@@ -1451,38 +1679,27 @@ export default function EmployeeDirectoryPage() {
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Level
               </label>
-              <select
+              <CustomSelect
                 value={editForm.level}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, level: e.target.value })
-                }
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                {LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setEditForm({ ...editForm, level: val })}
+                options={LEVELS.map((l) => ({ value: l, label: l }))}
+                placeholder="Select level"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
                 Country
               </label>
-              <select
+              <CustomSelect
                 value={editForm.country}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, country: e.target.value })
-                }
-                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setEditForm({ ...editForm, country: val })}
+                options={COUNTRIES.map((c) => ({
+                  value: c.code,
+                  label: `${c.flag} ${c.name}`,
+                }))}
+                placeholder="Select country"
+              />
             </div>
           </div>
 
@@ -1533,6 +1750,167 @@ export default function EmployeeDirectoryPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        isOpen={isBulkUploadOpen}
+        onClose={() => {
+          setIsBulkUploadOpen(false);
+          setBulkFile(null);
+          setBulkPreview([]);
+          setBulkErrorsCount(0);
+          setBulkImportError(null);
+        }}
+        title="Bulk Import Employees"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1 no-scrollbar">
+          <div className="bg-surface border-border flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <h4 className="text-text-primary text-sm font-bold">CSV Template</h4>
+              <p className="text-text-muted mt-1 text-xs">
+                Download our sample template with correct column headers and formatting.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadSampleTemplate}
+              className="flex items-center gap-1.5 shrink-0"
+            >
+              <Download size={14} /> Template
+            </Button>
+          </div>
+
+          <form onSubmit={handleBulkUploadSubmit} className="space-y-4">
+            {bulkImportError && (
+              <div className="bg-destructive/10 border-destructive/20 text-destructive rounded-lg border p-3 text-xs font-medium flex items-start gap-2">
+                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                <span>{bulkImportError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-text-muted text-xs font-semibold tracking-wider uppercase">
+                Select CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleBulkFileChange}
+                className="border-border bg-background text-text-primary focus:ring-accent/50 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:ring-2 focus:outline-none"
+              />
+            </div>
+
+            {bulkPreview.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-text-primary text-xs font-bold uppercase tracking-wider">
+                    Upload Preview ({bulkPreview.length} rows)
+                  </h4>
+                  {bulkErrorsCount > 0 ? (
+                    <span className="bg-rose-500/10 text-rose-500 rounded px-2 py-0.5 text-xs font-bold flex items-center gap-1">
+                      <AlertTriangle size={12} /> {bulkErrorsCount} rows with errors
+                    </span>
+                  ) : (
+                    <span className="bg-emerald-500/10 text-emerald-500 rounded px-2 py-0.5 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle size={12} /> Ready for Import
+                    </span>
+                  )}
+                </div>
+
+                <div className="border-border max-h-60 overflow-auto rounded-lg border">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-background text-text-muted border-b border-border font-semibold">
+                        <th className="px-3 py-2">Row</th>
+                        <th className="px-3 py-2">Name</th>
+                        <th className="px-3 py-2">ID</th>
+                        <th className="px-3 py-2">Dept</th>
+                        <th className="px-3 py-2">Lvl</th>
+                        <th className="px-3 py-2">Ctry</th>
+                        <th className="px-3 py-2">Salary</th>
+                        <th className="px-3 py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40 bg-surface">
+                      {bulkPreview.map((item, idx) => {
+                        const hasErrors = item.errors.length > 0;
+                        return (
+                          <tr
+                            key={idx}
+                            className={`hover:bg-background/40 transition-colors ${
+                              hasErrors ? "bg-rose-500/5" : ""
+                            }`}
+                          >
+                            <td className="px-3 py-2 font-mono text-text-muted">
+                              {item.rowNumber}
+                            </td>
+                            <td className="px-3 py-2 font-semibold text-text-primary">
+                              {item.data.name || "-"}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-text-primary">
+                              {item.data.employeeCode || "-"}
+                            </td>
+                            <td className="px-3 py-2 text-text-muted">
+                              {item.data.department || "-"}
+                            </td>
+                            <td className="px-3 py-2 text-text-primary">
+                              {item.data.level || "-"}
+                            </td>
+                            <td className="px-3 py-2 text-text-primary">
+                              {item.data.country || "-"}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-text-primary">
+                              {item.data.initialSalary ? `${item.data.initialSalary.toLocaleString()} ${item.data.currency}` : "-"}
+                            </td>
+                            <td className="px-3 py-2">
+                              {hasErrors ? (
+                                <span
+                                  className="text-rose-500 cursor-help underline decoration-dotted"
+                                  title={item.errors.join("\n")}
+                                >
+                                  Invalid
+                                </span>
+                              ) : (
+                                <span className="text-emerald-500 font-medium">Valid</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="border-border mt-6 flex justify-end gap-3 border-t pt-4">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  setIsBulkUploadOpen(false);
+                  setBulkFile(null);
+                  setBulkPreview([]);
+                  setBulkErrorsCount(0);
+                  setBulkImportError(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                isLoading={isBulkImporting}
+                disabled={bulkPreview.length === 0 || bulkErrorsCount > 0}
+              >
+                Import Employees
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1540,10 +1918,17 @@ export default function EmployeeDirectoryPage() {
 // Config mappings for drop options
 const LEVELS = ["L1", "L2", "L3", "L4", "L5"];
 const COUNTRIES = [
-  { code: "US", name: "United States", currency: "USD" },
-  { code: "IN", name: "India", currency: "INR" },
-  { code: "UK", name: "United Kingdom", currency: "GBP" },
-  { code: "DE", name: "Germany", currency: "EUR" },
-  { code: "SG", name: "Singapore", currency: "SGD" },
-  { code: "BR", name: "Brazil", currency: "BRL" },
+  { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
+  { code: "IN", name: "India", currency: "INR", flag: "🇮🇳" },
+  { code: "UK", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
+  { code: "DE", name: "Germany", currency: "EUR", flag: "🇩🇪" },
+  { code: "SG", name: "Singapore", currency: "SGD", flag: "🇸🇬" },
+  { code: "BR", name: "Brazil", currency: "BRL", flag: "🇧🇷" },
+  { code: "CA", name: "Canada", currency: "CAD", flag: "🇨🇦" },
+  { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" },
+  { code: "FR", name: "France", currency: "EUR", flag: "🇫🇷" },
+  { code: "JP", name: "Japan", currency: "JPY", flag: "🇯🇵" },
+  { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" },
+  { code: "NL", name: "Netherlands", currency: "EUR", flag: "🇳🇱" },
+  { code: "CH", name: "Switzerland", currency: "CHF", flag: "🇨🇭" },
 ];

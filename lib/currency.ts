@@ -5,6 +5,11 @@ export const CURRENCY_RATES: Record<string, number> = {
   EUR: 0.92,
   SGD: 1.34,
   BRL: 5.0,
+  CAD: 1.36,
+  AUD: 1.50,
+  JPY: 155.0,
+  AED: 3.67,
+  CHF: 0.90,
 };
 
 export function convertToUSD(amount: number, currency: string): number {
