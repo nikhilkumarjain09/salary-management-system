@@ -29,8 +29,9 @@ As organizations grow to 10,000+ employees, managing compensation spreadsheets l
 
 ## 2. Product Demo & Screenshots
 
-### Product Demo Video
-*   Walkthrough Video: [/demo/video/product-demo.mp4](file:///e:/salary-management-system/demo/video/product-demo.mp4)
+### Product Demo & Links
+*   **Live SaaS Application**: [https://salary-management-system-teal.vercel.app/login](https://salary-management-system-teal.vercel.app/login)
+*   **Walkthrough Video**: [/demo/video/product-demo.mp4](file:///e:/salary-management-system/demo/video/product-demo.mp4)
 
 ### Screenshot Gallery
 *   **Executive Dashboard**: [demo/screenshots/dashboard.png](file:///e:/salary-management-system/demo/screenshots/dashboard.png)
