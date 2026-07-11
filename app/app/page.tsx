@@ -100,6 +100,16 @@ export default function HomeDashboardPage() {
     fetchAnalytics();
   }, []);
 
+  // Hide scrollbar on mount, restore on unmount for home page only
+  useEffect(() => {
+    document.documentElement.classList.add("no-scrollbar");
+    document.body.classList.add("no-scrollbar");
+    return () => {
+      document.documentElement.classList.remove("no-scrollbar");
+      document.body.classList.remove("no-scrollbar");
+    };
+  }, []);
+
   const formatUSD = (val: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

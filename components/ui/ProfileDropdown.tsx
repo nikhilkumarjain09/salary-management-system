@@ -30,18 +30,36 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Profile data states (persisted locally)
+  const [userName, setUserName] = useState("Admin User");
+  const [tempName, setTempName] = useState("Admin User");
+
   // Modal Open States
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isSecurityOpen, setIsSecurityOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
-  // Initialize theme on mount
+  // Security Form States
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  // Initialize theme and name on mount
   useEffect(() => {
     const root = document.documentElement;
     const isDark =
       root.classList.contains("dark") ||
       localStorage.getItem("theme") === "dark";
     setTheme(isDark ? "dark" : "light");
+
+    const savedName = localStorage.getItem("user_name");
+    if (savedName) {
+      setUserName(savedName);
+      setTempName(savedName);
+    }
   }, []);
 
   // Close dropdown on click outside
@@ -60,7 +78,10 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
   }, []);
 
   const email = user?.email || "hr.manager@acme.com";
-  const initials = email.substring(0, 2).toUpperCase();
+  // Generate initials from user name if edited, else email
+  const displayInitials = (userName || email)
+    .substring(0, 2)
+    .toUpperCase();
 
   const handleSignOut = () => {
     setIsOpen(false);
@@ -80,6 +101,56 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
     }
   };
 
+  const handleSaveAccount = () => {
+    setUserName(tempName);
+    localStorage.setItem("user_name", tempName);
+    setIsAccountOpen(false);
+  };
+
+  const handleUpdatePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All password fields are required.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    try {
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess("Password updated successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setPasswordError(data.error || "Failed to update password.");
+      }
+    } catch (err) {
+      console.error("Failed to update password:", err);
+      setPasswordError("Connection error. Please try again.");
+    } finally {
+      setIsSubmittingPassword(false);
+    }
+  };
+
   return (
     <>
       <div className="relative" ref={dropdownRef}>
@@ -92,7 +163,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
           aria-label="User profile menu"
         >
           <div className="bg-accent text-white flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold shadow-sm select-none">
-            {initials}
+            {displayInitials}
           </div>
           <ChevronDown size={14} className="text-text-muted hidden sm:inline" />
         </button>
@@ -102,10 +173,13 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             {/* Profile details */}
             <div className="px-3 py-2 border-b border-border/40 mb-1.5">
               <p className="text-text-primary text-sm font-semibold truncate">
+                {userName}
+              </p>
+              <p className="text-text-muted text-[10px] truncate max-w-full">
                 {email}
               </p>
-              <div className="flex items-center gap-1 mt-0.5 text-text-muted text-xs">
-                <Shield size={12} className="text-accent" />
+              <div className="flex items-center gap-1 mt-1 text-text-muted text-[10px]">
+                <Shield size={10} className="text-accent" />
                 <span>HR Administrator</span>
               </div>
             </div>
@@ -114,6 +188,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             <div className="space-y-0.5">
               <button
                 onClick={() => {
+                  setTempName(userName);
                   setIsAccountOpen(true);
                   setIsOpen(false);
                   setIsThemeOpen(false);
@@ -126,6 +201,11 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
 
               <button
                 onClick={() => {
+                  setPasswordError(null);
+                  setPasswordSuccess(null);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
                   setIsSecurityOpen(true);
                   setIsOpen(false);
                   setIsThemeOpen(false);
@@ -230,7 +310,8 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             </label>
             <input
               type="text"
-              defaultValue="Admin User"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
               className="w-full bg-background border border-border text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
             />
           </div>
@@ -264,7 +345,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
               Cancel
             </button>
             <button
-              onClick={() => setIsAccountOpen(false)}
+              onClick={handleSaveAccount}
               className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm"
             >
               Save Changes
@@ -280,12 +361,25 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
         title="Security & Password"
       >
         <div className="space-y-4">
+          {passwordError && (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg p-2.5 text-xs font-medium">
+              {passwordError}
+            </div>
+          )}
+          {passwordSuccess && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg p-2.5 text-xs font-medium">
+              {passwordSuccess}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
               Current Password
             </label>
             <input
               type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full bg-background border border-border text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
             />
@@ -296,6 +390,8 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             </label>
             <input
               type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 8 characters"
               className="w-full bg-background border border-border text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
             />
@@ -306,6 +402,8 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             </label>
             <input
               type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm password"
               className="w-full bg-background border border-border text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
             />
@@ -333,10 +431,11 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
               Cancel
             </button>
             <button
-              onClick={() => setIsSecurityOpen(false)}
-              className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm"
+              onClick={handleUpdatePassword}
+              disabled={isSubmittingPassword}
+              className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Update Password
+              {isSubmittingPassword ? "Updating..." : "Update Password"}
             </button>
           </div>
         </div>
@@ -392,7 +491,7 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             </button>
             <button
               onClick={() => setIsPreferencesOpen(false)}
-              className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm"
+              className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors shadow-sm animate-in"
             >
               Save Preferences
             </button>

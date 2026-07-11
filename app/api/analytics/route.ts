@@ -68,10 +68,10 @@ export async function GET(req: NextRequest) {
     >`
       WITH OrderedSalaries AS (
         SELECT 
-          e.department,
-          s.baseAmountUSD,
-          ROW_NUMBER() OVER (PARTITION BY e.department ORDER BY s.baseAmountUSD) as row_num,
-          COUNT(*) OVER (PARTITION BY e.department) as dept_count
+          e."department",
+          s."baseAmountUSD",
+          ROW_NUMBER() OVER (PARTITION BY e."department" ORDER BY s."baseAmountUSD") as row_num,
+          COUNT(*) OVER (PARTITION BY e."department") as dept_count
         FROM "SalaryRecord" s
         INNER JOIN (
           SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -81,10 +81,10 @@ export async function GET(req: NextRequest) {
         INNER JOIN "Employee" e ON s."employeeId" = e.id
         WHERE e."isActive" = ${true}
       )
-      SELECT department, AVG(baseAmountUSD) as "medianPay"
+      SELECT "department", AVG("baseAmountUSD") as "medianPay"
       FROM OrderedSalaries
       WHERE row_num IN ( (dept_count + 1) / 2, (dept_count + 2) / 2 )
-      GROUP BY department
+      GROUP BY "department"
     `;
 
     // Map departments together
@@ -127,10 +127,10 @@ export async function GET(req: NextRequest) {
     >`
       WITH OrderedSalaries AS (
         SELECT 
-          e.country,
-          s.baseAmountUSD,
-          ROW_NUMBER() OVER (PARTITION BY e.country ORDER BY s.baseAmountUSD) as row_num,
-          COUNT(*) OVER (PARTITION BY e.country) as country_count
+          e."country",
+          s."baseAmountUSD",
+          ROW_NUMBER() OVER (PARTITION BY e."country" ORDER BY s."baseAmountUSD") as row_num,
+          COUNT(*) OVER (PARTITION BY e."country") as country_count
         FROM "SalaryRecord" s
         INNER JOIN (
           SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -140,10 +140,10 @@ export async function GET(req: NextRequest) {
         INNER JOIN "Employee" e ON s."employeeId" = e.id
         WHERE e."isActive" = ${true}
       )
-      SELECT country, AVG(baseAmountUSD) as "medianPay"
+      SELECT "country", AVG("baseAmountUSD") as "medianPay"
       FROM OrderedSalaries
       WHERE row_num IN ( (country_count + 1) / 2, (country_count + 2) / 2 )
-      GROUP BY country
+      GROUP BY "country"
     `;
 
     const countryMap = new Map<string, { average: number; median: number }>();
