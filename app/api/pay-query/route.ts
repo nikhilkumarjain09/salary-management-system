@@ -11,7 +11,7 @@ async function queryAvgPay(
   if (filterValue) {
     const raw = await prisma.$queryRawUnsafe<any[]>(
       `
-      SELECT e."${dimension}" as name, AVG(s."baseAmountUSD") as avgPay
+      SELECT e."${dimension}" as name, AVG(s."baseAmountUSD") as "avgPay"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -31,7 +31,7 @@ async function queryAvgPay(
   } else {
     const raw = await prisma.$queryRawUnsafe<any[]>(
       `
-      SELECT e."${dimension}" as name, AVG(s."baseAmountUSD") as avgPay
+      SELECT e."${dimension}" as name, AVG(s."baseAmountUSD") as "avgPay"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -41,7 +41,7 @@ async function queryAvgPay(
       INNER JOIN "Employee" e ON s."employeeId" = e.id
       WHERE e."isActive" = true
       GROUP BY e."${dimension}"
-      ORDER BY avgPay DESC
+      ORDER BY "avgPay" DESC
     `,
     );
     return raw.map((r) => ({
@@ -147,7 +147,7 @@ async function queryPayGap(department?: string, level?: string) {
         e."department",
         e."level",
         e."country",
-        AVG(s."baseAmountUSD") as avgPay
+        AVG(s."baseAmountUSD") as "avgPay"
       FROM "SalaryRecord" s
       INNER JOIN (
         SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -174,13 +174,13 @@ async function queryPayGap(department?: string, level?: string) {
     SELECT 
       department,
       level,
-      MIN(avgPay) as minCountryPay,
-      MAX(avgPay) as maxCountryPay,
-      (MAX(avgPay) - MIN(avgPay)) as absoluteSpread,
-      (MAX(avgPay) / MIN(avgPay)) as ratioSpread
+      MIN("avgPay") as "minCountryPay",
+      MAX("avgPay") as "maxCountryPay",
+      (MAX("avgPay") - MIN("avgPay")) as "absoluteSpread",
+      (MAX("avgPay") / MIN("avgPay")) as "ratioSpread"
     FROM CountryAverages
     GROUP BY department, level
-    ORDER BY ratioSpread DESC
+    ORDER BY "ratioSpread" DESC
   `;
 
   const raw = await prisma.$queryRawUnsafe<any[]>(query, ...params);
@@ -219,7 +219,7 @@ async function queryCompaOutliers(
       e."country",
       s."baseAmount",
       s."currency",
-      (s."baseAmount" / b."midAmount") as compaRatio
+      (s."baseAmount" / b."midAmount") as "compaRatio"
     FROM "SalaryRecord" s
     INNER JOIN (
       SELECT "employeeId", MAX("effectiveDate") as maxDate
@@ -229,7 +229,7 @@ async function queryCompaOutliers(
     INNER JOIN "Employee" e ON s."employeeId" = e.id
     INNER JOIN "CompensationBand" b ON e."department" = b."department" AND e."level" = b."level" AND e."country" = b."country"
     WHERE e."isActive" = true AND b."midAmount" > 0 AND ${condition}
-    ORDER BY compaRatio ASC
+    ORDER BY "compaRatio" ASC
     LIMIT 10
   `);
 
