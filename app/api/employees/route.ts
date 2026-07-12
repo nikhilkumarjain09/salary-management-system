@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
       if (ghostEmployees.length > 0) {
         console.log(`[Search] Self-healing index: deleting ${ghostEmployees.length} ghost documents missing in DB`);
         for (const ghost of ghostEmployees) {
-          searchService.syncDelete(ghost.id as string).catch((err) => {
+          searchService.deleteFromIndex(ghost.id as string).catch((err) => {
             console.error(`[Search] Failed to sync delete ghost employee ${ghost.id}:`, err);
           });
         }

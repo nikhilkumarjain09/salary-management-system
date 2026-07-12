@@ -375,7 +375,7 @@ async function main() {
     console.log('[Capture] Running Scene 6: Pay Equity...');
     await page.goto('http://localhost:3000/app/analytics', { waitUntil: 'domcontentloaded' });
     await sleep(2000);
-    await recordDuration(15, "Now I am navigating to the Analytics tab. You are looking at normalized salary bands and pay equity distribution details.");
+    await recordDuration(15, "Now I am navigating to the Home page. You are looking at normalized salary bands and pay equity distribution details.");
     await recordDuration(15, "HR managers can instantly identify compensation anomalies where actual pay deviates from defined country bands.");
 
     // SCENE 7: Administrative Controls (30s, 60 frames)

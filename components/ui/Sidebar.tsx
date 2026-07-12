@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
+  Home,
   Users,
   Sliders,
   TrendingUp,
@@ -70,9 +70,9 @@ export function Sidebar({
       title: "Main",
       items: [
         {
-          label: "Analytics",
+          label: "Home",
           href: "/app",
-          icon: <LayoutDashboard size={18} />,
+          icon: <Home size={18} />,
         },
       ],
     },
