@@ -55,11 +55,6 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Fetch saved reports on mount
-  useEffect(() => {
-    fetchSavedReports();
-  }, []);
-
   const fetchSavedReports = async () => {
     try {
       const res = await fetch("/api/reports/saved");
@@ -71,6 +66,11 @@ export default function ReportsPage() {
       console.error("Failed to load saved reports:", err);
     }
   };
+
+  // Fetch saved reports on mount
+  useEffect(() => {
+    fetchSavedReports();
+  }, []);
 
   const handleDimensionToggle = (dim: string) => {
     if (selectedDims.includes(dim)) {
