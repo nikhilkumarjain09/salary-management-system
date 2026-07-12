@@ -215,58 +215,64 @@ async function main() {
       }
     });
 
-    // SCENE 2: Executive Dashboard Overview (50s, 100 frames)
+    // SCENE 2: Executive Dashboard & NL Assistant (60s, 120 frames)
     console.log('[Capture] Running Scene 2: Executive Dashboard...');
     await page.waitForSelector('main', { timeout: 15000 });
     await recordDuration(15, "Now we are looking at the main Executive Dashboard, which aggregates payroll statistics in real-time.");
-    await recordDuration(20, "I am scrolling down to show the precomputed department aggregates, headcount trends, and pay equity charts.", async (step, total) => {
-      // Scroll down
+    await recordDuration(15, "I am scrolling down to show the precomputed department aggregates, headcount trends, and pay equity charts.", async (step, total) => {
       await page.evaluate((s, t) => {
-        window.scrollTo(0, (s / t) * 400);
+        window.scrollTo(0, (s / t) * 350);
       }, step, total);
     });
-    await recordDuration(15, "Scrolling back up to the top metrics. Every chart and aggregate query loads instantly in under 15 milliseconds.", async (step, total) => {
-      // Scroll back up
-      await page.evaluate((s, t) => {
-        window.scrollTo(0, 400 - (s / t) * 400);
-      }, step, total);
+    await recordDuration(15, "Here is the 'Ask about pay' Natural Language Assistant. I will query 'Average pay by department' to fetch real-time metrics.", async (step) => {
+      if (step === 2) {
+        const buttons = await page.$$('button');
+        for (const btn of buttons) {
+          const text = await page.evaluate(el => el.textContent, btn);
+          if (text && text.includes('Average pay by department')) {
+            await btn.click();
+            break;
+          }
+        }
+      }
+    });
+    await recordDuration(15, "The AI compiles and extracts parameters from the request, returning structural salary calculations in under 15ms.", async (step) => {
+      // Show query results
     });
 
-    // SCENE 3: Virtualized Employee Directory (60s, 120 frames)
+    // SCENE 3: Virtualized Employee Directory (50s, 100 frames)
     console.log('[Capture] Running Scene 3: Directory Virtualization...');
     await page.goto('http://localhost:3000/app/employees', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('tr', { timeout: 15000 });
     await sleep(2000);
     
-    await recordDuration(20, "Now I am navigating to the Employee Directory page. The list you see handles over 10,000 active employee records.");
-    await recordDuration(20, "I am scrolling down the table list. Notice the virtualized viewport rendering only the visible rows to maintain 60 FPS.", async (step, total) => {
-      // Scroll table
+    await recordDuration(15, "Now I am navigating to the Employee Directory page. The list you see handles over 10,000 active employee records.");
+    await recordDuration(18, "I am scrolling down the table list. Notice the virtualized viewport rendering only the visible rows to maintain 60 FPS.", async (step, total) => {
       await page.evaluate((s, t) => {
         const el = document.querySelector('div.overflow-y-auto');
         if (el) el.scrollTop = (s / t) * 1200;
       }, step, total);
     });
-    await recordDuration(20, "Scrolling back to the top of the directory. CompensaIQ handles huge database queries with zero interface lag.", async (step, total) => {
-      // Scroll back up
+    await recordDuration(17, "Scrolling back to the top of the directory. CompensaIQ handles huge database queries with zero interface lag.", async (step, total) => {
       await page.evaluate((s, t) => {
         const el = document.querySelector('div.overflow-y-auto');
         if (el) el.scrollTop = 1200 - (s / t) * 1200;
       }, step, total);
     });
 
-    // SCENE 4: Advanced Search & Dynamic Matching (50s, 100 frames)
+    // SCENE 4: Advanced Search & Dynamic Matching (40s, 80 frames)
     console.log('[Capture] Running Scene 4: Advanced Filtering...');
-    await recordDuration(15, "Now I am typing 'Nikhil Kumar Jain' in the search bar. The input is debounced by 200ms to optimize search client resources.");
-    await recordDuration(20, "You are looking at the filtered search results. Users can select Starts With, Contains, or Exact matching modes.", async (step) => {
+    await recordDuration(15, "Now I am typing 'Nikhil' in the search bar. The input is debounced by 200ms to optimize search client resources.");
+    await recordDuration(15, "You are looking at the filtered search results. Users can select Starts With, Contains, or Exact matching modes.", async (step) => {
       if (step === 2) await page.type('input[placeholder="Type name or code..."]', 'Nikhil Kumar Jain', { delay: 100 });
     });
-    await recordDuration(15, "Now that the search results display his profile card, I will proceed to inspect his full salary timeline.", async (step) => {
+    await recordDuration(10, "Now that the search results display his profile card, I will proceed to inspect his full salary timeline.", async (step) => {
       // Keep search output active
     });
 
-    // SCENE 5: Salary Timeline & Document Upload (90s, 180 frames)
+    // SCENE 5: Salary Timeline & Document Upload (60s, 120 frames)
     console.log('[Capture] Running Scene 5: Salary Audits and Document Upload...');
-    await recordDuration(15, "Now I am clicking on Nikhil Kumar Jain's row to open his slide-over Profile Quick View drawer.", async (step) => {
+    await recordDuration(10, "Now I am clicking on Nikhil Kumar Jain's row to open his slide-over Profile Quick View drawer.", async (step) => {
       if (step === 2) {
         const rows = await page.$$('tr');
         if (rows.length > 1) await rows[1].click();
@@ -274,7 +280,7 @@ async function main() {
       }
     });
 
-    await recordDuration(15, "Clicking 'View Full Salary Timeline' to navigate to his dedicated employee workspace.", async (step) => {
+    await recordDuration(10, "Clicking 'View Full Salary Timeline' to navigate to his dedicated employee workspace.", async (step) => {
       if (step === 2) {
         const buttons = await page.$$('button');
         for (const btn of buttons) {
@@ -288,7 +294,7 @@ async function main() {
       }
     });
 
-    await recordDuration(15, "Navigating to the Documents workspace tab to manage files for Nikhil Kumar Jain.", async (step) => {
+    await recordDuration(10, "Navigating to the Documents workspace tab to manage files for Nikhil Kumar Jain.", async (step) => {
       if (step === 2) {
         const buttons = await page.$$('button');
         for (const btn of buttons) {
@@ -302,7 +308,7 @@ async function main() {
       }
     });
 
-    await recordDuration(15, "Opening the secure Document Upload Modal. We can upload PDF, Excel, image, or text files.", async (step) => {
+    await recordDuration(10, "Opening the secure Document Upload Modal. We can upload PDF, Excel, image, or text files.", async (step) => {
       if (step === 2) {
         const buttons = await page.$$('button');
         for (const btn of buttons) {
@@ -316,17 +322,15 @@ async function main() {
       }
     });
 
-    await recordDuration(15, "Dragging and dropping or selecting the file. Now I am categorizing it as an Offer Letter.", async (step) => {
+    await recordDuration(10, "Dragging and dropping or selecting the file. Now I am categorizing it as an Offer Letter.", async (step) => {
       if (step === 2) {
-        // Upload dummy file
         const fileInput = await page.$('input[type="file"]');
         if (fileInput) {
           await fileInput.uploadFile(dummyFilePath);
           await sleep(1000);
         }
       }
-      if (step === 5) {
-        // Select Category
+      if (step === 4) {
         const selectButtons = await page.$$('button');
         for (const btn of selectButtons) {
           const text = await page.evaluate(el => el.textContent, btn);
@@ -337,8 +341,7 @@ async function main() {
           }
         }
       }
-      if (step === 8) {
-        // Click select option (Offer Letter)
+      if (step === 6) {
         const optionButtons = await page.$$('button');
         for (const opt of optionButtons) {
           const text = await page.evaluate(el => el.textContent, opt);
@@ -349,13 +352,12 @@ async function main() {
           }
         }
       }
-      if (step === 11) {
-        // Input description
+      if (step === 8) {
         await page.type('textarea[placeholder="Enter document summary or details..."]', 'Nikhil Kumar Jain signed offer letter.', { delay: 50 });
       }
     });
 
-    await recordDuration(15, "Clicking 'Save Upload' to securely commit the file to CompensaIQ's document storage.", async (step) => {
+    await recordDuration(10, "Clicking 'Save Upload' to securely commit the file to CompensaIQ's document storage.", async (step) => {
       if (step === 2) {
         const saveButtons = await page.$$('button');
         for (const btn of saveButtons) {
@@ -369,19 +371,19 @@ async function main() {
       }
     });
 
-    // SCENE 6: Analytics & Pay Equity Metrics (40s, 80 frames)
+    // SCENE 6: Analytics & Pay Equity Metrics (30s, 60 frames)
     console.log('[Capture] Running Scene 6: Pay Equity...');
     await page.goto('http://localhost:3000/app/analytics', { waitUntil: 'domcontentloaded' });
     await sleep(2000);
-    await recordDuration(20, "Now I am navigating to the Analytics tab. You are looking at normalized salary bands and pay equity distribution details.");
-    await recordDuration(20, "HR managers can instantly identify compensation anomalies where actual pay deviates from defined country bands.");
+    await recordDuration(15, "Now I am navigating to the Analytics tab. You are looking at normalized salary bands and pay equity distribution details.");
+    await recordDuration(15, "HR managers can instantly identify compensation anomalies where actual pay deviates from defined country bands.");
 
-    // SCENE 7: Administrative Controls (40s, 80 frames)
+    // SCENE 7: Administrative Controls (30s, 60 frames)
     console.log('[Capture] Running Scene 7: Administration...');
     await page.goto('http://localhost:3000/app/compensation-bands', { waitUntil: 'domcontentloaded' });
     await sleep(2000);
-    await recordDuration(20, "Now we are looking at the Compensation Bands setup page, where administrators manage min, mid, and max thresholds.");
-    await recordDuration(20, "Thank you for watching this demo of CompensaIQ. If you need any assistance or have questions, feel free to ask me.");
+    await recordDuration(15, "Now we are looking at the Compensation Bands setup page, where administrators manage min, mid, and max thresholds.");
+    await recordDuration(15, "Thank you for watching this demo of CompensaIQ. If you need any assistance or have questions, feel free to ask me.");
 
   } catch (err) {
     console.error('[Capture] Screen capture failed:', err);
@@ -394,16 +396,16 @@ async function main() {
     } catch (ignore) {}
   }
 
-  // Compile frames into a standard 2-minute (120s) MP4 video at 6 fps input / 30 fps output!
+  // Compile frames into a standard 5-minute (300s) MP4 video at 2 fps input / 30 fps output!
   console.log('[Capture] Compiling video with FFmpeg...');
   try {
     const videoPath = path.join(videoDir, 'product-demo.mp4');
     const inputPattern = path.join(framesDir, 'frame-%03d.png');
     
-    // Command: ffmpeg -y -framerate 6 -i frame-%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p product-demo.mp4
+    // Command: ffmpeg -y -framerate 2 -i frame-%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p product-demo.mp4
     const ffmpegProc = spawn('ffmpeg', [
       '-y',
-      '-framerate', '6',
+      '-framerate', '2',
       '-i', inputPattern,
       '-c:v', 'libx264',
       '-r', '30',
