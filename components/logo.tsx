@@ -11,7 +11,7 @@ export function Logo({ className = "", size = 28 }: LogoProps) {
       className={`text-text-primary flex items-center gap-2 font-semibold tracking-tight ${className}`}
     >
       <img
-        src="/logo.png"
+        src="/assets/salary-management-system.png"
         alt="CompensaIQ Logo"
         width={size}
         height={size}

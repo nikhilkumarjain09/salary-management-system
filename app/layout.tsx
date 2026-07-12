@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Manage pay data, compensation bands, ratios, and run natural-language organizational pay analysis.",
   icons: {
-    icon: "/favicon.png",
+    icon: "/assets/TabIcon.png",
   },
 };
 

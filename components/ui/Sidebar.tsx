@@ -130,7 +130,7 @@ export function Sidebar({
         <div className="border-border/40 flex items-center justify-between border-b pb-2.5 min-h-[38px] overflow-hidden px-1">
           <div className="flex items-center overflow-hidden shrink-0">
             <img
-              src="/logo.png"
+              src="/assets/salary-management-system.png"
               alt="CompensaIQ Logo"
               className="h-6 w-6 rounded-md object-contain shrink-0 select-none"
             />

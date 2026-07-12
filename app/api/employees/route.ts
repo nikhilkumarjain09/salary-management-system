@@ -143,6 +143,37 @@ export async function GET(req: NextRequest) {
       sortOrder,
     });
 
+    // Validate that all returned search documents still exist in PostgreSQL
+    if (result.employees.length > 0) {
+      const empIds = result.employees.map(
+        (e: Record<string, unknown>) => e.id as string,
+      );
+      const activeEmployees = await prisma.employee.findMany({
+        where: { id: { in: empIds } },
+        select: { id: true },
+      });
+      const activeIds = new Set(activeEmployees.map((e) => e.id));
+      
+      const filteredEmployees = result.employees.filter((e: Record<string, unknown>) =>
+        activeIds.has(e.id as string),
+      );
+      
+      const ghostEmployees = result.employees.filter((e: Record<string, unknown>) =>
+        !activeIds.has(e.id as string),
+      );
+      
+      if (ghostEmployees.length > 0) {
+        console.log(`[Search] Self-healing index: deleting ${ghostEmployees.length} ghost documents missing in DB`);
+        for (const ghost of ghostEmployees) {
+          searchService.syncDelete(ghost.id as string).catch((err) => {
+            console.error(`[Search] Failed to sync delete ghost employee ${ghost.id}:`, err);
+          });
+        }
+      }
+      
+      result.employees = filteredEmployees;
+    }
+
     // 4. Optionally enrich with compa-ratio data
     const enrichCompa = searchParams.get("enrichCompa") === "true";
     if (enrichCompa && result.employees.length > 0) {
