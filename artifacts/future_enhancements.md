@@ -24,7 +24,7 @@
 
 ## 2. Changelog & Release Notes
 
-### [v1.1.0] — 2026-07-11
+### [v1.1.0] — 2026-07-12
 #### Added
 *   **Dropdown Search Modes**: Added startsWith, exactMatch, and contains filter dropdowns.
 *   **DevOps Infrastructure**: Added Dockerfile, docker-compose, and GitHub Actions CI pipelines.
